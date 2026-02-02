@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@pages/*": ["cypress/pages/*"],
+      "@support/*": ["cypress/support/*"],
+      "@utils/*": ["cypress/utils/*"],
+      "@fixtures/*": ["cypress/fixtures/*"],
+      "@config/*": ["cypress/config/*"]
+    },
+    "types": ["cypress", "node"],
+    "lib": ["ES2022", "DOM"],
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "checkJs": true,
+    "noEmit": true
+  },
+  "include": [
+    "cypress/**/*.js",
+    "cypress.config.js",
+    "scripts/**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "cypress/reports"
+  ]
+}

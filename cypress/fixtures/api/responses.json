@@ -1,0 +1,324 @@
+{
+  "auth": {
+    "loginSuccess": {
+      "success": true,
+      "message": "Login successful",
+      "data": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTUxNjIzOTAyMn0.mock-token",
+        "refreshToken": "mock-refresh-token",
+        "expiresIn": 3600,
+        "user": {
+          "id": 1,
+          "email": "testuser@example.com",
+          "firstName": "Test",
+          "lastName": "User",
+          "role": "user"
+        }
+      }
+    },
+    "loginFailure": {
+      "success": false,
+      "error": {
+        "code": "INVALID_CREDENTIALS",
+        "message": "Invalid email or password"
+      }
+    },
+    "loginLocked": {
+      "success": false,
+      "error": {
+        "code": "ACCOUNT_LOCKED",
+        "message": "Your account has been locked due to too many failed login attempts"
+      }
+    },
+    "registerSuccess": {
+      "success": true,
+      "message": "Registration successful. Please check your email to verify your account.",
+      "data": {
+        "id": 10,
+        "email": "newuser@example.com",
+        "firstName": "New",
+        "lastName": "User"
+      }
+    },
+    "registerEmailExists": {
+      "success": false,
+      "error": {
+        "code": "EMAIL_EXISTS",
+        "message": "An account with this email already exists"
+      }
+    }
+  },
+  "users": {
+    "list": {
+      "success": true,
+      "data": {
+        "users": [
+          {
+            "id": 1,
+            "email": "john.doe@example.com",
+            "firstName": "John",
+            "lastName": "Doe",
+            "role": "user",
+            "status": "active"
+          },
+          {
+            "id": 2,
+            "email": "jane.smith@example.com",
+            "firstName": "Jane",
+            "lastName": "Smith",
+            "role": "user",
+            "status": "active"
+          }
+        ],
+        "pagination": {
+          "page": 1,
+          "limit": 10,
+          "total": 2,
+          "totalPages": 1
+        }
+      }
+    },
+    "single": {
+      "success": true,
+      "data": {
+        "id": 1,
+        "email": "john.doe@example.com",
+        "firstName": "John",
+        "lastName": "Doe",
+        "username": "johndoe",
+        "phone": "+1234567890",
+        "role": "user",
+        "status": "active",
+        "avatar": "https://example.com/avatars/1.jpg",
+        "createdAt": "2024-01-15T10:30:00Z",
+        "updatedAt": "2024-01-20T15:45:00Z"
+      }
+    },
+    "notFound": {
+      "success": false,
+      "error": {
+        "code": "USER_NOT_FOUND",
+        "message": "User not found"
+      }
+    },
+    "created": {
+      "success": true,
+      "message": "User created successfully",
+      "data": {
+        "id": 100,
+        "email": "newuser@example.com",
+        "firstName": "New",
+        "lastName": "User"
+      }
+    },
+    "updated": {
+      "success": true,
+      "message": "User updated successfully",
+      "data": {
+        "id": 1,
+        "email": "john.doe@example.com",
+        "firstName": "John Updated",
+        "lastName": "Doe"
+      }
+    },
+    "deleted": {
+      "success": true,
+      "message": "User deleted successfully"
+    }
+  },
+  "products": {
+    "list": {
+      "success": true,
+      "data": {
+        "products": [
+          {
+            "id": 1,
+            "name": "Product One",
+            "description": "Description for product one",
+            "price": 29.99,
+            "category": "electronics",
+            "stock": 100,
+            "status": "active"
+          },
+          {
+            "id": 2,
+            "name": "Product Two",
+            "description": "Description for product two",
+            "price": 49.99,
+            "category": "clothing",
+            "stock": 50,
+            "status": "active"
+          }
+        ],
+        "pagination": {
+          "page": 1,
+          "limit": 10,
+          "total": 2,
+          "totalPages": 1
+        }
+      }
+    },
+    "single": {
+      "success": true,
+      "data": {
+        "id": 1,
+        "name": "Product One",
+        "description": "Description for product one",
+        "price": 29.99,
+        "category": "electronics",
+        "stock": 100,
+        "status": "active",
+        "images": [
+          "https://example.com/products/1/image1.jpg",
+          "https://example.com/products/1/image2.jpg"
+        ],
+        "createdAt": "2024-01-10T08:00:00Z",
+        "updatedAt": "2024-01-15T12:30:00Z"
+      }
+    }
+  },
+  "orders": {
+    "list": {
+      "success": true,
+      "data": {
+        "orders": [
+          {
+            "id": "ORD-001",
+            "userId": 1,
+            "status": "completed",
+            "total": 129.99,
+            "items": 3,
+            "createdAt": "2024-01-20T10:00:00Z"
+          },
+          {
+            "id": "ORD-002",
+            "userId": 1,
+            "status": "pending",
+            "total": 59.99,
+            "items": 1,
+            "createdAt": "2024-01-21T14:30:00Z"
+          }
+        ],
+        "pagination": {
+          "page": 1,
+          "limit": 10,
+          "total": 2,
+          "totalPages": 1
+        }
+      }
+    },
+    "single": {
+      "success": true,
+      "data": {
+        "id": "ORD-001",
+        "userId": 1,
+        "status": "completed",
+        "items": [
+          {
+            "productId": 1,
+            "name": "Product One",
+            "quantity": 2,
+            "price": 29.99,
+            "subtotal": 59.98
+          },
+          {
+            "productId": 2,
+            "name": "Product Two",
+            "quantity": 1,
+            "price": 49.99,
+            "subtotal": 49.99
+          }
+        ],
+        "subtotal": 109.97,
+        "tax": 10.02,
+        "shipping": 10.00,
+        "total": 129.99,
+        "shippingAddress": {
+          "street": "123 Test Street",
+          "city": "Test City",
+          "state": "CA",
+          "zipCode": "12345",
+          "country": "USA"
+        },
+        "createdAt": "2024-01-20T10:00:00Z",
+        "updatedAt": "2024-01-20T15:30:00Z"
+      }
+    }
+  },
+  "errors": {
+    "badRequest": {
+      "success": false,
+      "error": {
+        "code": "BAD_REQUEST",
+        "message": "Invalid request parameters",
+        "details": []
+      }
+    },
+    "unauthorized": {
+      "success": false,
+      "error": {
+        "code": "UNAUTHORIZED",
+        "message": "Authentication required"
+      }
+    },
+    "forbidden": {
+      "success": false,
+      "error": {
+        "code": "FORBIDDEN",
+        "message": "You do not have permission to access this resource"
+      }
+    },
+    "notFound": {
+      "success": false,
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Resource not found"
+      }
+    },
+    "serverError": {
+      "success": false,
+      "error": {
+        "code": "INTERNAL_SERVER_ERROR",
+        "message": "An unexpected error occurred"
+      }
+    },
+    "validationError": {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Validation failed",
+        "details": [
+          {
+            "field": "email",
+            "message": "Invalid email format"
+          },
+          {
+            "field": "password",
+            "message": "Password must be at least 8 characters"
+          }
+        ]
+      }
+    }
+  },
+  "common": {
+    "success": {
+      "success": true,
+      "message": "Operation completed successfully"
+    },
+    "empty": {
+      "success": true,
+      "data": [],
+      "pagination": {
+        "page": 1,
+        "limit": 10,
+        "total": 0,
+        "totalPages": 0
+      }
+    },
+    "health": {
+      "status": "healthy",
+      "version": "1.0.0",
+      "timestamp": "2024-01-25T12:00:00Z"
+    }
+  }
+}

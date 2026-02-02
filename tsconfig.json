@@ -1,0 +1,77 @@
+{
+  "compilerOptions": {
+    // Target & Module
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ES2022", "DOM"],
+    
+    // Type checking
+    "types": ["cypress", "node"],
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    
+    // Emit options
+    "outDir": "./dist",
+    "rootDir": "./",
+    "noEmit": true,
+    "removeComments": false,
+    "sourceMap": true,
+    
+    // Interoperability with JavaScript
+    "allowJs": true,
+    "checkJs": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    
+    // Strict type checking (progressive - start relaxed)
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "noImplicitThis": false,
+    "alwaysStrict": false,
+    
+    // Additional checks (will enable later)
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": false,
+    
+    // Path mapping
+    "baseUrl": ".",
+    "paths": {
+      "@pages/*": ["cypress/pages/*"],
+      "@support/*": ["cypress/support/*"],
+      "@utils/*": ["cypress/utils/*"],
+      "@fixtures/*": ["cypress/fixtures/*"],
+      "@config/*": ["cypress/config/*"]
+    }
+  },
+  "include": [
+    "cypress/**/*.ts",
+    "cypress/**/*.js",
+    "cypress.config.ts",
+    "cypress.config.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "cypress/reports",
+    "cypress/videos",
+    "cypress/screenshots",
+    "cypress/downloads",
+    "dist",
+    "apps",
+    "packages"
+  ],
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "CommonJS"
+    }
+  }
+}

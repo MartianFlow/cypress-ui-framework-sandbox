@@ -1,0 +1,24 @@
+{
+  "sampleProducts": [
+    {
+      "id": 1,
+      "name": "Premium Wireless Headphones",
+      "slug": "premium-wireless-headphones",
+      "price": 199.99
+    },
+    {
+      "id": 2,
+      "name": "Ergonomic Office Chair",
+      "slug": "ergonomic-office-chair",
+      "price": 349.99
+    }
+  ],
+  "newProduct": {
+    "name": "New Test Product",
+    "description": "This is a test product description",
+    "price": 149.99,
+    "category": "Electronics",
+    "stock": 100,
+    "status": "active"
+  }
+}

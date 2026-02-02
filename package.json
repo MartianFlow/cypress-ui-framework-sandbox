@@ -1,0 +1,91 @@
+{
+  "name": "cypress-ui-framework-sandbox",
+  "version": "1.0.0",
+  "description": "Enterprise-grade Cypress UI Automation Framework with best practices and design patterns",
+  "author": "QA Team",
+  "license": "MIT",
+  "private": true,
+  "keywords": [
+    "cypress",
+    "e2e",
+    "testing",
+    "automation",
+    "page-object-model",
+    "qa",
+    "ecommerce",
+    "monorepo"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:web": "pnpm --filter @ecommerce/web dev",
+    "dev:api": "pnpm --filter @ecommerce/api dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter @ecommerce/web build",
+    "build:api": "pnpm --filter @ecommerce/api build",
+    "db:push": "pnpm --filter @ecommerce/api db:push",
+    "db:seed": "pnpm --filter @ecommerce/api db:seed",
+    "db:studio": "pnpm --filter @ecommerce/api db:studio",
+    "cy:open": "cypress open",
+    "cy:open:dev": "cypress open --config-file cypress/config/environments/dev.config.js",
+    "cy:open:qa": "cypress open --config-file cypress/config/environments/qa.config.js",
+    "cy:open:staging": "cypress open --config-file cypress/config/environments/staging.config.js",
+    "cy:open:prod": "cypress open --config-file cypress/config/environments/prod.config.js",
+    "cy:run": "cypress run",
+    "cy:run:dev": "cypress run --config-file cypress/config/environments/dev.config.js",
+    "cy:run:qa": "cypress run --config-file cypress/config/environments/qa.config.js",
+    "cy:run:staging": "cypress run --config-file cypress/config/environments/staging.config.js",
+    "cy:run:prod": "cypress run --config-file cypress/config/environments/prod.config.js",
+    "cy:run:smoke": "cypress run --env grepTags=@smoke",
+    "cy:run:regression": "cypress run --env grepTags=@regression",
+    "cy:run:chrome": "cypress run --browser chrome",
+    "cy:run:firefox": "cypress run --browser firefox",
+    "cy:run:edge": "cypress run --browser edge",
+    "cy:run:parallel": "cypress run --parallel --record",
+    "cy:run:headed": "cypress run --headed",
+    "lint": "eslint 'cypress/**/*.js' --fix",
+    "lint:check": "eslint 'cypress/**/*.js'",
+    "format": "prettier --write 'cypress/**/*.js' '*.js' '*.json'",
+    "format:check": "prettier --check 'cypress/**/*.js' '*.js' '*.json'",
+    "report:generate": "node scripts/merge-reports.js",
+    "report:allure": "allure generate cypress/reports/allure-results --clean -o cypress/reports/allure-report && allure open cypress/reports/allure-report",
+    "clean": "rm -rf cypress/reports cypress/screenshots cypress/videos node_modules/.cache apps/api/data",
+    "clean:reports": "rm -rf cypress/reports",
+    "prepare": "husky || true",
+    "test": "npm run cy:run",
+    "test:ci": "npm run cy:run -- --record false",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch"
+  },
+  "devDependencies": {
+    "@bahmutov/cy-grep": "^1.11.1",
+    "@shelex/cypress-allure-plugin": "^2.40.2",
+    "@types/node": "^22.10.5",
+    "allure-commandline": "^2.27.0",
+    "cypress": "^14.0.0",
+    "cypress-on-fix": "^1.0.3",
+    "cypress-real-events": "^1.13.0",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.57.0",
+    "eslint-plugin-cypress": "^2.15.1",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "mochawesome": "^7.1.3",
+    "mochawesome-merge": "^4.3.0",
+    "mochawesome-report-generator": "^6.2.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.7.2"
+  },
+  "lint-staged": {
+    "cypress/**/*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,json}": [
+      "prettier --write"
+    ]
+  }
+}

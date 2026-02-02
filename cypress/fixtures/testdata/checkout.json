@@ -1,0 +1,36 @@
+{
+  "default": {
+    "shipping": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "john.doe@example.com",
+      "phone": "1234567890",
+      "address": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "zip": "10001",
+      "country": "US"
+    },
+    "paymentMethod": "credit_card",
+    "card": {
+      "number": "4111111111111111",
+      "name": "John Doe",
+      "expiry": "12/28",
+      "cvv": "123"
+    }
+  },
+  "paypal": {
+    "shipping": {
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "email": "jane.smith@example.com",
+      "phone": "9876543210",
+      "address": "456 Oak Ave",
+      "city": "Los Angeles",
+      "state": "CA",
+      "zip": "90001",
+      "country": "US"
+    },
+    "paymentMethod": "paypal"
+  }
+}

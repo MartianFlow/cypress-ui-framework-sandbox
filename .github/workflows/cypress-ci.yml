@@ -1,0 +1,329 @@
+name: Cypress CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to run tests against'
+        required: true
+        default: 'qa'
+        type: choice
+        options:
+          - dev
+          - qa
+          - staging
+      browser:
+        description: 'Browser to run tests'
+        required: true
+        default: 'chrome'
+        type: choice
+        options:
+          - chrome
+          - firefox
+          - edge
+      tags:
+        description: 'Test tags to run (e.g., @smoke, @regression)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  # Node version
+  NODE_VERSION: '20'
+  # Cypress cache
+  CYPRESS_CACHE_FOLDER: ~/.cache/Cypress
+  # Default environment
+  CYPRESS_ENV: ${{ github.event.inputs.environment || 'qa' }}
+
+jobs:
+  # =================================
+  # Install and Cache Dependencies
+  # =================================
+  install:
+    name: Install Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Generate Cache Key
+        id: cache-key
+        run: echo "key=${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+
+      - name: Cache Node Modules
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ steps.cache-key.outputs.key }}
+
+      - name: Cache Cypress Binary
+        uses: actions/cache@v4
+        id: cypress-cache
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install Dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Verify Cypress
+        run: npx cypress verify
+
+  # =================================
+  # Lint and Format Check
+  # =================================
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore Node Modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Run ESLint
+        run: npm run lint:check
+
+      - name: Run Prettier Check
+        run: npm run format:check
+
+  # =================================
+  # Run Tests - Multi Browser Matrix
+  # =================================
+  test:
+    name: Test (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    needs: [install, lint]
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox, edge]
+        include:
+          - browser: chrome
+            container: cypress/browsers:node-20.17.0-chrome-128.0.6613.137-1-ff-130.0.1-edge-128.0.2739.67-1
+          - browser: firefox
+            container: cypress/browsers:node-20.17.0-chrome-128.0.6613.137-1-ff-130.0.1-edge-128.0.2739.67-1
+          - browser: edge
+            container: cypress/browsers:node-20.17.0-chrome-128.0.6613.137-1-ff-130.0.1-edge-128.0.2739.67-1
+    container:
+      image: ${{ matrix.container }}
+      options: --user 1001
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Restore Node Modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Restore Cypress Binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Run Cypress Tests
+        uses: cypress-io/github-action@v6
+        with:
+          browser: ${{ matrix.browser }}
+          install: false
+          config-file: cypress/config/environments/${{ env.CYPRESS_ENV }}.config.js
+        env:
+          CYPRESS_BASE_URL: ${{ secrets.CYPRESS_BASE_URL }}
+          CYPRESS_API_URL: ${{ secrets.CYPRESS_API_URL }}
+          CYPRESS_TEST_USER_EMAIL: ${{ secrets.CYPRESS_TEST_USER_EMAIL }}
+          CYPRESS_TEST_USER_PASSWORD: ${{ secrets.CYPRESS_TEST_USER_PASSWORD }}
+
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-screenshots-${{ matrix.browser }}
+          path: cypress/screenshots
+          retention-days: 7
+
+      - name: Upload Videos
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cypress-videos-${{ matrix.browser }}
+          path: cypress/videos
+          retention-days: 7
+
+      - name: Upload Mochawesome Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mochawesome-report-${{ matrix.browser }}
+          path: cypress/reports/mochawesome
+          retention-days: 7
+
+  # =================================
+  # Smoke Tests (Quick Validation)
+  # =================================
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: install
+    if: github.event_name == 'pull_request'
+    container:
+      image: cypress/browsers:node-20.17.0-chrome-128.0.6613.137-1-ff-130.0.1-edge-128.0.2739.67-1
+      options: --user 1001
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Restore Node Modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Restore Cypress Binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Run Smoke Tests
+        uses: cypress-io/github-action@v6
+        with:
+          browser: chrome
+          install: false
+          config-file: cypress/config/environments/${{ env.CYPRESS_ENV }}.config.js
+          env: grepTags=@smoke
+        env:
+          CYPRESS_BASE_URL: ${{ secrets.CYPRESS_BASE_URL }}
+
+      - name: Upload Smoke Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test-results
+          path: |
+            cypress/screenshots
+            cypress/videos
+            cypress/reports
+          retention-days: 3
+
+  # =================================
+  # Generate Combined Report
+  # =================================
+  generate-report:
+    name: Generate Report
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore Node Modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.install.outputs.cache-key }}
+
+      - name: Download All Reports
+        uses: actions/download-artifact@v4
+        with:
+          path: cypress/reports/downloaded
+          pattern: mochawesome-report-*
+
+      - name: Merge Reports
+        run: node scripts/merge-reports.js
+
+      - name: Upload Combined Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-test-report
+          path: cypress/reports/combined
+          retention-days: 30
+
+      - name: Deploy Report to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: cypress/reports/combined
+          destination_dir: reports
+
+  # =================================
+  # Notify on Failure
+  # =================================
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [test, smoke-tests]
+    if: failure()
+    steps:
+      - name: Send Slack Notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Cypress Tests Failed!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Cypress Tests Failed!*\n\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\nWorkflow: ${{ github.workflow }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
