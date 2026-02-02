@@ -58,3 +58,5 @@ apps/api/data/
 
 # Drizzle
 apps/api/drizzle/
+
+.claude/
