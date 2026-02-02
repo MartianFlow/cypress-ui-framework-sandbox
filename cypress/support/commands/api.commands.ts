@@ -35,23 +35,21 @@ Cypress.Commands.add('apiRequest', (options) => {
   const baseUrl = Cypress.env('apiUrl');
   const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
 
-  // Get auth token if available
-  return cy.window().then((win) => {
-    const token = win.localStorage.getItem('authToken');
-    const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  // Get auth token from Cypress env (set by loginByApi)
+  const token = Cypress.env('authToken');
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-    return cy.request({
-      method,
-      url: fullUrl,
-      body,
-      qs,
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders,
-        ...headers,
-      },
-      failOnStatusCode,
-    });
+  return cy.request({
+    method,
+    url: fullUrl,
+    body,
+    qs,
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders,
+      ...headers,
+    },
+    failOnStatusCode,
   });
 });
 
@@ -292,10 +290,13 @@ Cypress.Commands.add('shouldHaveStatus', { prevSubject: true }, (subject, expect
  * cy.apiGet('/users/1').shouldHaveProperty('name', 'John')
  */
 Cypress.Commands.add('shouldHaveProperty', { prevSubject: true }, (subject, property, value) => {
+  // Check if response has a 'data' wrapper (common API pattern)
+  const bodyToCheck = subject.body.data !== undefined ? subject.body.data : subject.body;
+
   if (value !== undefined) {
-    expect(subject.body).to.have.property(property, value);
+    expect(bodyToCheck).to.have.property(property, value);
   } else {
-    expect(subject.body).to.have.property(property);
+    expect(bodyToCheck).to.have.property(property);
   }
   return cy.wrap(subject);
 });
@@ -329,11 +330,17 @@ Cypress.Commands.add('createTestData', (endpoint, data, alias) => {
   return cy.apiPost(endpoint, data).then((response) => {
     expect(response.status).to.be.oneOf([200, 201]);
 
+    // Extract data from response (handle both { data: ... } and direct response)
+    const result = response.body.data !== undefined ? response.body.data : response.body;
+
+    // Handle nested entity keys (e.g., { product: {...} }, { user: {...} }, { item: {...} })
+    const finalResult = result.product || result.user || result.item || result.order || result;
+
     if (alias) {
-      cy.wrap(response.body).as(alias);
+      cy.wrap(finalResult).as(alias);
     }
 
-    return cy.wrap(response.body);
+    return cy.wrap(finalResult);
   });
 });
 
@@ -376,20 +383,21 @@ Cypress.Commands.add('cleanupTestData', (endpoint, idField, ids) => {
  * @example
  * cy.graphqlQuery('query GetUser($id: ID!) { user(id: $id) { name } }', { id: 1 })
  */
-Cypress.Commands.add('graphqlQuery', (query, variables = {}) => {
-  return cy.apiPost('/graphql', { query, variables });
+Cypress.Commands.add('graphqlQuery', (query, variables = {}, options = {}) => {
+  return cy.apiPost('/graphql', { query, variables }, options);
 });
 
 /**
  * Make GraphQL mutation
  * @param {string} mutation - GraphQL mutation string
  * @param {Object} [variables] - Mutation variables
+ * @param {Object} [options] - Request options
  * @returns {Cypress.Chainable} Response
  * @example
  * cy.graphqlMutation('mutation CreateUser($input: UserInput!) { createUser(input: $input) { id } }', { input: { name: 'John' } })
  */
-Cypress.Commands.add('graphqlMutation', (mutation, variables = {}) => {
-  return cy.apiPost('/graphql', { query: mutation, variables });
+Cypress.Commands.add('graphqlMutation', (mutation, variables = {}, options = {}) => {
+  return cy.apiPost('/graphql', { query: mutation, variables }, options);
 });
 
 /**

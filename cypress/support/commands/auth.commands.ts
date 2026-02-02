@@ -78,19 +78,32 @@ Cypress.Commands.add('loginByApi', (email, password, options = {}) => {
     }).then((response) => {
       expect(response.status).to.eq(200);
 
-      // Store auth state in Zustand's persisted storage
+      // Store auth state
       const { token, user } = response.body.data || response.body;
 
       if (token) {
-        const authData = {
-          state: {
-            token,
-            user,
-            isAuthenticated: true,
-          },
-          version: 0,
-        };
-        window.localStorage.setItem('auth-storage', JSON.stringify(authData));
+        // Store token in Cypress env for API requests
+        Cypress.env('authToken', token);
+        Cypress.env('currentUser', user);
+
+        // Also store in localStorage if window is available (for UI tests)
+        // Try to access window, but don't fail if it's not available (API-only tests)
+        try {
+          cy.window({ log: false }).then((win) => {
+            const authData = {
+              state: {
+                token,
+                user,
+                isAuthenticated: true,
+              },
+              version: 0,
+            };
+            win.localStorage.setItem('auth-storage', JSON.stringify(authData));
+          });
+        } catch (e) {
+          // Window not available - this is fine for API-only tests
+          cy.log('Window not available - skipping localStorage (API-only test)');
+        }
       }
 
       // Set auth cookie if provided
@@ -106,11 +119,17 @@ Cypress.Commands.add('loginByApi', (email, password, options = {}) => {
       loginAction,
       {
         validate: () => {
-          cy.request({
-            method: 'GET',
-            url: `${Cypress.env('apiUrl')}/auth/me`,
-            failOnStatusCode: false,
-          }).its('status').should('eq', 200);
+          const token = Cypress.env('authToken');
+          if (token) {
+            cy.request({
+              method: 'GET',
+              url: `${Cypress.env('apiUrl')}/auth/me`,
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              failOnStatusCode: false,
+            }).its('status').should('eq', 200);
+          }
         },
         cacheAcrossSpecs: true,
       }
@@ -257,6 +276,11 @@ Cypress.Commands.add('verifyLoggedOut', () => {
  * cy.clearAuth()
  */
 Cypress.Commands.add('clearAuth', () => {
+  // Clear Cypress env tokens
+  Cypress.env('authToken', null);
+  Cypress.env('currentUser', null);
+
+  // Clear storage and cookies
   cy.clearLocalStorage();
   cy.clearAllSessionStorage();
   cy.clearAllCookies();

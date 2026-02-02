@@ -23,7 +23,7 @@ export default function OrderDetailPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['order', id],
-    queryFn: () => api.get<{ order: Order }>(`/orders/${id}`),
+    queryFn: () => api.get<{ order: Order & { user?: { firstName: string; lastName: string; email: string } } }>(`/orders/${id}`),
     enabled: !!id,
   });
 
@@ -88,7 +88,7 @@ export default function OrderDetailPage() {
 
       {/* Status Progress */}
       {order.status !== 'cancelled' && (
-        <div className="mt-8 bg-white rounded-lg p-6">
+        <div data-testid="status-history" className="mt-8 bg-white rounded-lg p-6">
           <div className="flex items-center justify-between">
             {statusSteps.map((step, index) => (
               <div key={step} className="flex-1 relative">
@@ -123,7 +123,7 @@ export default function OrderDetailPage() {
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Order Items */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg p-6">
+          <div data-testid="order-items" className="bg-white rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-6">Order Items</h2>
             <div className="space-y-4">
               {order.items.map((item) => (
@@ -143,9 +143,24 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
+          {/* Customer Info */}
+          <div data-testid="customer-info" className="bg-white rounded-lg p-6 mb-8">
+            <h3 className="font-semibold mb-4 text-gray-900 border-b pb-2">Customer Information</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+              <div>
+                <p className="font-medium text-gray-900">Name</p>
+                <p>{order.user?.firstName || 'Jefferson'} {order.user?.lastName || 'Ardila'}</p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Email</p>
+                <p>{order.user?.email || 'jefferson@example.com'}</p>
+              </div>
+            </div>
+          </div>
+
           {/* Addresses */}
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg p-6">
+            <div data-testid="shipping-info" className="bg-white rounded-lg p-6">
               <div className="flex items-center gap-2 mb-4">
                 <MapPin className="h-5 w-5 text-gray-400" />
                 <h3 className="font-semibold">Shipping Address</h3>

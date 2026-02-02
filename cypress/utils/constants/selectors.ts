@@ -557,14 +557,14 @@ export const ADMIN = {
   // Products Management
   PRODUCTS: {
     PAGE: '[data-testid="admin-products"]',
-    ADD_BUTTON: '[data-testid="add-product"]',
+    ADD_BUTTON: '[data-testid="add-product-button"]',
     TABLE: '[data-testid="products-table"]',
     ROW: '[data-testid="product-row"]',
     EDIT_BUTTON: '[data-testid="edit-product"]',
     DELETE_BUTTON: '[data-testid="delete-product"]',
-    SEARCH: '[data-testid="search-products"]',
-    FILTER_CATEGORY: '[data-testid="filter-category"]',
-    FILTER_STATUS: '[data-testid="filter-status"]',
+    SEARCH: '[data-testid="search-input"]',
+    FILTER_CATEGORY: '[data-testid="category-filter"]',
+    FILTER_STATUS: '[data-testid="status-filter"]',
     FORM: {
       MODAL: '[data-testid="product-form-modal"]',
       NAME: '[data-testid="product-form-name"]',
@@ -640,7 +640,7 @@ export const ADMIN = {
  * @param {string} testId - data-testid value
  * @returns {string} CSS selector
  */
-const byTestId = (testId) => `[data-testid="${testId}"]`;
+export const byTestId = (testId: string): string => `[data-testid="${testId}"]`;
 
 /**
  * Helper function to create dynamic selector
@@ -648,28 +648,4 @@ const byTestId = (testId) => `[data-testid="${testId}"]`;
  * @param {string} suffix - Dynamic suffix
  * @returns {string} CSS selector
  */
-const dynamicSelector = (prefix, suffix) => `[data-testid="${prefix}-${suffix}"]`;
-
-// =================================
-// Exports
-// =================================
-
-export {
-  AUTH,
-  HEADER,
-  MODAL,
-  TABLE,
-  FORM,
-  COMMON,
-  DASHBOARD,
-  PROFILE,
-  SETTINGS,
-  PRODUCTS,
-  CATEGORIES,
-  CART,
-  CHECKOUT,
-  ORDERS,
-  ADMIN,
-  byTestId,
-  dynamicSelector,
-};
+export const dynamicSelector = (prefix: string, suffix: string): string => `[data-testid="${prefix}-${suffix}"]`;

@@ -25,6 +25,7 @@ import DashboardPage from './user/DashboardPage';
 import ProfilePage from './user/ProfilePage';
 
 // Admin Page Objects
+import AdminDashboardPage from './admin/AdminDashboardPage';
 import AdminProductsPage from './admin/AdminProductsPage';
 import AdminOrdersPage from './admin/AdminOrdersPage';
 import AdminUsersPage from './admin/AdminUsersPage';
@@ -151,6 +152,10 @@ class PageFactory {
   // Admin Page Getters
   // =================================
 
+  get adminDashboardPage() {
+    return this._getPage(AdminDashboardPage);
+  }
+
   get adminProductsPage() {
     return this._getPage(AdminProductsPage);
   }
@@ -256,6 +261,10 @@ function profilePage() {
 }
 
 // Admin Pages
+function adminDashboardPage() {
+  return pageFactory.adminDashboardPage;
+}
+
 function adminProductsPage() {
   return pageFactory.adminProductsPage;
 }
@@ -322,9 +331,11 @@ export {
   profilePage,
 
   // Admin Pages
+  AdminDashboardPage,
   AdminProductsPage,
   AdminOrdersPage,
   AdminUsersPage,
+  adminDashboardPage,
   adminProductsPage,
   adminOrdersPage,
   adminUsersPage,

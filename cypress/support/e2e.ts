@@ -138,7 +138,7 @@ const setupEnvironment = () => {
   switch (environment) {
     case 'dev':
       // Development-specific setup
-      Cypress.config('defaultCommandTimeout', 15000);
+      Cypress.config('defaultCommandTimeout', 3000);
       break;
 
     case 'qa':
@@ -151,7 +151,7 @@ const setupEnvironment = () => {
 
     case 'prod':
       // Production-specific setup (read-only tests)
-      Cypress.config('defaultCommandTimeout', 8000);
+      Cypress.config('defaultCommandTimeout', 3000);
       break;
 
     default:

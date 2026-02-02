@@ -505,4 +505,51 @@ products.delete('/:id', authMiddleware, requireRole('admin'), async (c) => {
   return successResponse(c, { message: 'Product deleted successfully' });
 });
 
+// POST /products/bulk-delete (admin)
+products.post('/bulk-delete', authMiddleware, requireRole('admin'), async (c) => {
+  const body = await c.req.json();
+  const { ids } = body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return errorResponse(c, 'Invalid product IDs', 400, 'INVALID_REQUEST');
+  }
+
+  // Delete products
+  for (const id of ids) {
+    await db.delete(schema.products).where(eq(schema.products.id, id));
+  }
+
+  return successResponse(c, { 
+    message: `${ids.length} product(s) deleted successfully`,
+    deletedCount: ids.length
+  });
+});
+
+// PUT /products/bulk-update (admin)
+products.put('/bulk-update', authMiddleware, requireRole('admin'), async (c) => {
+  const body = await c.req.json();
+  const { ids, status } = body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return errorResponse(c, 'Invalid product IDs', 400, 'INVALID_REQUEST');
+  }
+
+  if (!['active', 'inactive', 'draft'].includes(status)) {
+    return errorResponse(c, 'Invalid status', 400, 'INVALID_STATUS');
+  }
+
+  // Update products
+  for (const id of ids) {
+    await db
+      .update(schema.products)
+      .set({ status })
+      .where(eq(schema.products.id, id));
+  }
+
+  return successResponse(c, { 
+    message: `${ids.length} product(s) updated successfully`,
+    updatedCount: ids.length
+  });
+});
+
 export default products;

@@ -8,6 +8,9 @@ const { ADMIN, TABLE } = require('../../utils/constants/selectors');
 const { APP } = require('../../utils/constants/routes');
 
 class AdminOrdersPage extends BasePage {
+  public selectors: any;
+  public tableSelectors: any;
+
   /**
    * Creates an AdminOrdersPage instance
    */
@@ -113,6 +116,48 @@ class AdminOrdersPage extends BasePage {
   }
 
   /**
+   * Filter by date range
+   * @param {string} startDate - Start date
+   * @param {string} endDate - End date
+   * @returns {AdminOrdersPage} This page instance for chaining
+   */
+  filterByDateRange(startDate, endDate) {
+    cy.get('[data-testid="date-from"]').type(startDate);
+    cy.get('[data-testid="date-to"]').type(endDate);
+    return this;
+  }
+
+  /**
+   * Click view order
+   * @param {number} index - Order index
+   * @returns {AdminOrdersPage} This page instance for chaining
+   */
+  clickViewOrder(index) {
+    this.getOrderRow(index).find('[data-testid="view-button"]').click();
+    return this;
+  }
+
+  /**
+   * Update order status by index
+   * @param {number} index - Order index
+   * @param {string} status - New status
+   * @returns {AdminOrdersPage} This page instance for chaining
+   */
+  updateOrderStatusByIndex(index, status) {
+    this.getOrderRow(index).find('[data-testid="status-select"]').select(status);
+    return this;
+  }
+
+  /**
+   * Export orders to CSV
+   * @returns {AdminOrdersPage} This page instance for chaining
+   */
+  exportToCSV() {
+    cy.get('[data-testid="export-csv"]').click();
+    return this;
+  }
+
+  /**
    * View order by index
    * @param {number} index - Row index
    * @returns {AdminOrdersPage} This page instance for chaining
@@ -187,7 +232,7 @@ class AdminOrdersPage extends BasePage {
    * @param {string} [notes] - Optional notes
    * @returns {AdminOrdersPage} This page instance for chaining
    */
-  updateOrderStatus(orderNumber, newStatus, notes) {
+  updateOrderStatusByNumber(orderNumber, newStatus, notes) {
     this.openEditStatusByNumber(orderNumber);
     this.updateStatus(newStatus, notes);
     return this;
@@ -291,9 +336,13 @@ class AdminOrdersPage extends BasePage {
    * @param {string} [alias='updateStatus'] - Intercept alias
    * @returns {AdminOrdersPage} This page instance for chaining
    */
-  interceptUpdateStatusRequest(alias = 'updateStatus') {
-    cy.intercept('PUT', '**/orders/*/status').as(alias);
+  interceptUpdateStatus(alias = 'updateStatus') {
+    cy.intercept('PUT', '**/orders/**/status').as(alias);
     return this;
+  }
+
+  interceptUpdateStatusRequest(alias = 'updateStatus') {
+    return this.interceptUpdateStatus(alias);
   }
 
   /**
@@ -303,7 +352,7 @@ class AdminOrdersPage extends BasePage {
    * @returns {AdminOrdersPage} This page instance for chaining
    */
   mockOrders(orders, alias = 'getOrders') {
-    cy.intercept('GET', '**/orders*', {
+    cy.intercept('GET', '/api/**/orders*', {
       statusCode: 200,
       body: {
         success: true,

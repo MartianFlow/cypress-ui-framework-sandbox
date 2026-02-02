@@ -11,6 +11,14 @@ const users = new Hono();
 users.use('*', authMiddleware);
 users.use('*', requireRole('admin'));
 
+const createUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  firstName: z.string().min(2).max(50),
+  lastName: z.string().min(2).max(50),
+  role: z.enum(['user', 'admin', 'moderator']).optional(),
+});
+
 const updateUserSchema = z.object({
   firstName: z.string().min(2).max(50).optional(),
   lastName: z.string().min(2).max(50).optional(),
@@ -145,6 +153,55 @@ users.put('/:id', async (c) => {
   });
 });
 
+// POST /users
+users.post('/', async (c) => {
+  const body = await c.req.json();
+  const result = createUserSchema.safeParse(body);
+
+  if (!result.success) {
+    return errorResponse(c, 'Validation failed', 400, 'VALIDATION_ERROR',
+      Object.fromEntries(result.error.errors.map(e => [e.path.join('.'), [e.message]]))
+    );
+  }
+
+  // Check if user already exists
+  const [existingUser] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.email, result.data.email));
+
+  if (existingUser) {
+    return errorResponse(c, 'Email already exists', 400, 'EMAIL_EXISTS');
+  }
+
+  // Hash password (in a real app, use bcrypt)
+  const hashedPassword = result.data.password; // Simplified for demo
+
+  const [newUser] = await db
+    .insert(schema.users)
+    .values({
+      email: result.data.email,
+      password: hashedPassword,
+      firstName: result.data.firstName,
+      lastName: result.data.lastName,
+      role: result.data.role || 'user',
+      status: 'active',
+    })
+    .returning();
+
+  return successResponse(c, {
+    user: {
+      id: newUser.id,
+      email: newUser.email,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      role: newUser.role,
+      status: newUser.status,
+      createdAt: newUser.createdAt,
+    },
+  }, 201);
+});
+
 // DELETE /users/:id
 users.delete('/:id', async (c) => {
   const id = parseInt(c.req.param('id'));
@@ -167,6 +224,94 @@ users.delete('/:id', async (c) => {
   await db.delete(schema.users).where(eq(schema.users.id, id));
 
   return successResponse(c, { message: 'User deleted successfully' });
+});
+
+// POST /users/:id/reset-password
+users.post('/:id/reset-password', async (c) => {
+  const id = parseInt(c.req.param('id'));
+
+  const [user] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.id, id));
+
+  if (!user) {
+    return errorResponse(c, 'User not found', 404, 'NOT_FOUND');
+  }
+
+  // In a real app, generate reset token and send email
+  // For now, just return success
+  return successResponse(c, {
+    message: 'Password reset email sent successfully',
+  });
+});
+
+// POST /users/:id/impersonate
+users.post('/:id/impersonate', async (c) => {
+  const id = parseInt(c.req.param('id'));
+  const authUser = c.get('user');
+
+  // Prevent self-impersonation
+  if (id === authUser.id) {
+    return errorResponse(c, 'Cannot impersonate yourself', 400, 'SELF_IMPERSONATE');
+  }
+
+  const [user] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.id, id));
+
+  if (!user) {
+    return errorResponse(c, 'User not found', 404, 'NOT_FOUND');
+  }
+
+  // In a real app, create a temporary session for the impersonated user
+  // For now, just return success
+  return successResponse(c, {
+    message: 'Impersonation started successfully',
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+    },
+  });
+});
+
+// GET /users/:id/activity
+users.get('/:id/activity', async (c) => {
+  const id = parseInt(c.req.param('id'));
+
+  const [user] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.id, id));
+
+  if (!user) {
+    return errorResponse(c, 'User not found', 404, 'NOT_FOUND');
+  }
+
+  // Get user's orders
+  const orders = await db
+    .select()
+    .from(schema.orders)
+    .where(eq(schema.orders.userId, id));
+
+  // Get user's reviews
+  const reviews = await db
+    .select()
+    .from(schema.reviews)
+    .where(eq(schema.reviews.userId, id));
+
+  return successResponse(c, {
+    activity: {
+      ordersCount: orders.length,
+      reviewsCount: reviews.length,
+      recentOrders: orders.slice(0, 5),
+      recentReviews: reviews.slice(0, 5),
+    },
+  });
 });
 
 export default users;

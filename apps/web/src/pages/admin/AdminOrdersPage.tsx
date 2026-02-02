@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Eye } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { formatPrice, formatDate } from '@ecommerce/shared';
 import { api } from '../../services/api';
 import Pagination from '../../components/common/Pagination';
@@ -58,13 +57,27 @@ export default function AdminOrdersPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div data-testid="admin-orders" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Orders</h1>
 
       {/* Filters */}
       <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
         <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[300px] relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              data-testid="search-orders"
+              placeholder="Search orders..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
           <select
+            data-testid="filter-order-status"
             value={statusFilter}
             onChange={(e) => handleStatusFilter(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -86,7 +99,7 @@ export default function AdminOrdersPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent mx-auto"></div>
           </div>
         ) : (
-          <div data-testid="table" className="overflow-x-auto">
+          <div data-testid="orders-table" className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -101,21 +114,22 @@ export default function AdminOrdersPage() {
               </thead>
               <tbody>
                 {data?.data.map((order: Order & { user?: { email?: string; firstName?: string; lastName?: string } }) => (
-                  <tr key={order.id} className="border-t hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium">#{order.id}</td>
+                  <tr key={order.id} data-testid="order-row" className="border-t hover:bg-gray-50">
+                    <td className="py-3 px-4 font-medium" data-testid="order-number">#{order.id}</td>
                     <td className="py-3 px-4">
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-gray-900" data-testid="order-customer">
                           {order.user?.firstName} {order.user?.lastName}
                         </p>
                         <p className="text-sm text-gray-500">{order.user?.email}</p>
                       </div>
                     </td>
                     <td className="py-3 px-4 text-gray-600">
-                      {formatDate(order.createdAt)}
+                      <span data-testid="order-date">{formatDate(order.createdAt)}</span>
                     </td>
                     <td className="py-3 px-4">
                       <select
+                        data-testid="status-select"
                         value={order.status}
                         onChange={(e) => updateStatusMutation.mutate({ orderId: order.id, status: e.target.value })}
                         className={`px-2 py-1 rounded text-xs font-medium border-0 cursor-pointer ${
@@ -143,13 +157,13 @@ export default function AdminOrdersPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right font-medium">
-                      {formatPrice(order.total)}
+                      <span data-testid="order-total">{formatPrice(order.total)}</span>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-end">
                         <Link
-                          to={`/orders/${order.id}`}
-                          data-testid="view-button"
+                          to={`/admin/orders/${order.id}`}
+                          data-testid="view-order"
                           className="p-2 text-gray-600 hover:bg-gray-100 rounded"
                         >
                           <Eye className="h-4 w-4" />

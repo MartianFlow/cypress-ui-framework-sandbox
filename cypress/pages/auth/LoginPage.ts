@@ -44,7 +44,7 @@ class LoginPage extends BasePage {
    * @returns {Cypress.Chainable} Login button element
    */
   get loginButton() {
-    return cy.get(this.selectors.FORM).find(this.selectors.SUBMIT_BUTTON);
+    return cy.get(`${this.selectors.FORM} ${this.selectors.SUBMIT_BUTTON}`);
   }
 
   /**

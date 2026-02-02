@@ -8,6 +8,9 @@ const { ADMIN, TABLE } = require('../../utils/constants/selectors');
 const { APP } = require('../../utils/constants/routes');
 
 class AdminProductsPage extends BasePage {
+  public selectors: any;
+  public tableSelectors: any;
+
   /**
    * Creates an AdminProductsPage instance
    */
@@ -50,8 +53,16 @@ class AdminProductsPage extends BasePage {
   }
 
   // Form Elements
+  get productModal() {
+    return cy.get(this.selectors.FORM.MODAL);
+  }
+
   get formModal() {
     return cy.get(this.selectors.FORM.MODAL);
+  }
+
+  get productNameInput() {
+    return cy.get(this.selectors.FORM.NAME);
   }
 
   get nameInput() {
@@ -60,6 +71,10 @@ class AdminProductsPage extends BasePage {
 
   get descriptionInput() {
     return cy.get(this.selectors.FORM.DESCRIPTION);
+  }
+
+  get productPriceInput() {
+    return cy.get(this.selectors.FORM.PRICE);
   }
 
   get priceInput() {
@@ -79,15 +94,19 @@ class AdminProductsPage extends BasePage {
   }
 
   get featuredCheckbox() {
-    return cy.get(this.selectors.FORM.FEATURED);
+    return cy.get('[data-testid="product-featured"]');
   }
 
   get submitButton() {
-    return cy.get(this.selectors.FORM.SUBMIT);
+    return cy.get('[data-testid="submit-product"]');
   }
 
   get cancelButton() {
-    return cy.get(this.selectors.FORM.CANCEL);
+    return cy.get('[data-testid="cancel-product"]');
+  }
+
+  get selectedCount() {
+    return cy.get('[data-testid="selected-count"]');
   }
 
   // =================================
@@ -141,6 +160,11 @@ class AdminProductsPage extends BasePage {
    * @returns {AdminProductsPage} This page instance for chaining
    */
   filterByCategory(category) {
+    // Wait for categories to be loaded in the select (they come from API call)
+    this.categoryFilter.should('be.visible');
+    // Wait for the data-categories-loaded attribute to be 'true'
+    this.categoryFilter.should('have.attr', 'data-categories-loaded', 'true');
+    // Now select the category
     this.categoryFilter.select(category);
     return this;
   }
@@ -152,6 +176,93 @@ class AdminProductsPage extends BasePage {
    */
   filterByStatus(status) {
     this.statusFilter.select(status);
+    return this;
+  }
+
+  /**
+   * Clear all filters
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  clearFilters() {
+    cy.get('[data-testid="clear-filters"]').click();
+    return this;
+  }
+
+  /**
+   * Click edit product button
+   * @param {number} index - Product index
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  clickEditProduct(index) {
+    this.getProductRow(index).find('[data-testid="edit-product"]').click();
+    return this;
+  }
+
+  /**
+   * Click delete product button
+   * @param {number} index - Product index
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  clickDeleteProduct(index) {
+    this.getProductRow(index).find('[data-testid="delete-product"]').click();
+    return this;
+  }
+
+  /**
+   * Update product name
+   * @param {string} name - New product name
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  updateProductName(name) {
+    this.productNameInput.clear().type(name);
+    return this;
+  }
+
+  /**
+   * Submit product form
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  submitProductForm() {
+    this.submitButton.click();
+    return this;
+  }
+
+  /**
+   * Select all products
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  selectAllProducts() {
+    cy.get('[data-testid="select-all"]').check();
+    return this;
+  }
+
+  /**
+   * Select product by index
+   * @param {number} index - Product index
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  selectProduct(index) {
+    this.getProductRow(index).find('[data-testid="select-product"]').check();
+    return this;
+  }
+
+  /**
+   * Bulk delete selected products
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  bulkDelete() {
+    cy.get('[data-testid="bulk-delete"]').click();
+    cy.get('[data-testid="confirm-delete"]').click();
+    return this;
+  }
+
+  /**
+   * Bulk update status
+   * @param {string} status - New status
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  bulkUpdateStatus(status) {
+    cy.get('[data-testid="bulk-update-status"]').select(status);
     return this;
   }
 
@@ -357,12 +468,79 @@ class AdminProductsPage extends BasePage {
   // =================================
 
   /**
+   * Mock products data for testing
+   * @param {Array} products - Array of product objects
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  mockProducts(products) {
+    // Mock categories to provide a consistent mapping for IDs
+    cy.intercept('GET', '**/api/categories*', {
+      statusCode: 200,
+      body: {
+        success: true,
+        categories: [
+          { id: 1, name: 'Electronics', slug: 'electronics' },
+          { id: 2, name: 'Clothing', slug: 'clothing' },
+          { id: 3, name: 'Home', slug: 'home' },
+        ]
+      }
+    }).as('getCategories');
+
+    cy.intercept('GET', '**/api/products*', (req) => {
+      const url = new URL(req.url);
+      const search = url.searchParams.get('search');
+      const category = url.searchParams.get('category') || url.searchParams.get('categoryId');
+      const status = url.searchParams.get('status');
+
+      let filteredProducts = [...products];
+
+      if (search) {
+        filteredProducts = filteredProducts.filter(p => 
+          p.name.toLowerCase().includes(search.toLowerCase())
+        );
+      }
+
+      if (category) {
+        const categoryMap = { '1': 'Electronics', '2': 'Clothing', '3': 'Home' };
+        filteredProducts = filteredProducts.filter(p => 
+          p.categoryId?.toString() === category || 
+          p.category?.id?.toString() === category ||
+          p.category === category || 
+          p.category?.name === category ||
+          (categoryMap[category] && (p.category === categoryMap[category] || p.category?.name === categoryMap[category]))
+        );
+      }
+
+      if (status) {
+        filteredProducts = filteredProducts.filter(p => p.status === status);
+      }
+
+      req.reply({
+        statusCode: 200,
+        body: {
+          success: true,
+          data: {
+            data: filteredProducts,
+            pagination: {
+              page: 1,
+              pageSize: 10,
+              total: filteredProducts.length,
+              totalPages: Math.ceil(filteredProducts.length / 10),
+            },
+          },
+        },
+      });
+    }).as('getProducts');
+    return this;
+  }
+
+  /**
    * Intercept get products request
    * @param {string} [alias='getProducts'] - Intercept alias
    * @returns {AdminProductsPage} This page instance for chaining
    */
   interceptGetProductsRequest(alias = 'getProducts') {
-    cy.intercept('GET', '**/products*').as(alias);
+    cy.intercept('GET', '**/api/products*').as(alias);
     return this;
   }
 
@@ -371,9 +549,13 @@ class AdminProductsPage extends BasePage {
    * @param {string} [alias='createProduct'] - Intercept alias
    * @returns {AdminProductsPage} This page instance for chaining
    */
-  interceptCreateProductRequest(alias = 'createProduct') {
-    cy.intercept('POST', '**/products').as(alias);
+  interceptCreateProduct(alias = 'createProduct') {
+    cy.intercept('POST', '**/api/products').as(alias);
     return this;
+  }
+
+  interceptCreateProductRequest(alias = 'createProduct') {
+    return this.interceptCreateProduct(alias);
   }
 
   /**
@@ -381,9 +563,13 @@ class AdminProductsPage extends BasePage {
    * @param {string} [alias='updateProduct'] - Intercept alias
    * @returns {AdminProductsPage} This page instance for chaining
    */
-  interceptUpdateProductRequest(alias = 'updateProduct') {
-    cy.intercept('PUT', '**/products/*').as(alias);
+  interceptUpdateProduct(alias = 'updateProduct') {
+    cy.intercept('PUT', '**/api/products/*').as(alias);
     return this;
+  }
+
+  interceptUpdateProductRequest(alias = 'updateProduct') {
+    return this.interceptUpdateProduct(alias);
   }
 
   /**
@@ -391,8 +577,32 @@ class AdminProductsPage extends BasePage {
    * @param {string} [alias='deleteProduct'] - Intercept alias
    * @returns {AdminProductsPage} This page instance for chaining
    */
+  interceptDeleteProduct(alias = 'deleteProduct') {
+    cy.intercept('DELETE', '**/api/products/*').as(alias);
+    return this;
+  }
+
   interceptDeleteProductRequest(alias = 'deleteProduct') {
-    cy.intercept('DELETE', '**/products/*').as(alias);
+    return this.interceptDeleteProduct(alias);
+  }
+
+  /**
+   * Intercept bulk delete request
+   * @param {string} [alias='bulkDelete'] - Intercept alias
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  interceptBulkDelete(alias = 'bulkDelete') {
+    cy.intercept('POST', '**/api/products/bulk-delete').as(alias);
+    return this;
+  }
+
+  /**
+   * Intercept bulk update request
+   * @param {string} [alias='bulkUpdate'] - Intercept alias
+   * @returns {AdminProductsPage} This page instance for chaining
+   */
+  interceptBulkUpdate(alias = 'bulkUpdate') {
+    cy.intercept('PUT', '**/api/products/bulk-update').as(alias);
     return this;
   }
 

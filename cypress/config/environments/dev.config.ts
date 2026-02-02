@@ -52,8 +52,8 @@ export default defineConfig({
   },
 
   // More lenient timeouts for development
-  defaultCommandTimeout: 15000,
-  pageLoadTimeout: 90000,
+  defaultCommandTimeout: 3000,
+  pageLoadTimeout: 3000,
 
   // Enable video for debugging
   video: true,

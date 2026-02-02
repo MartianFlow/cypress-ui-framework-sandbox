@@ -1,0 +1,110 @@
+
+DevTools listening on ws://127.0.0.1:59048/devtools/browser/b5253e85-b3e8-4226-82af-70e8567d7025
+
+====================================================================================================
+
+  (Run Starting)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Cypress:        14.5.4                                                                         │
+  │ Browser:        Chrome 144 (headless)                                                          │
+  │ Node Version:   v22.19.0 (/usr/local/bin/node)                                                 │
+  │ Specs:          1 found (admin.cy.ts)                                                          │
+  │ Searched:       cypress/e2e/features/admin/admin.cy.ts                                         │
+  │ Experiments:    experimentalMemoryManagement=true,experimentalModifyObstructiveThirdPartyCode… │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+                                                                                                    
+  Running:  admin.cy.ts                                                                     (1 of 1)
+
+
+  Admin Products Management
+    Product Search and Filter
+      1) should filter by category
+
+
+  0 passing (13s)
+  1 failing
+
+  1) Admin Products Management
+       Product Search and Filter
+         should filter by category:
+     CypressError: Timed out retrying after 3000ms: `cy.select()` failed because it could not find a single `<option>` with value, index, or text matching: `Electronics`
+
+https://on.cypress.io/select
+      at getOptions (http://localhost:5173/__cypress/runner/cypress_runner.js:115768:72)
+      at tryCatcher (http://localhost:5173/__cypress/runner/cypress_runner.js:1777:23)
+      at Promise.attempt.Promise.try (http://localhost:5173/__cypress/runner/cypress_runner.js:4285:29)
+      at retryOptions (http://localhost:5173/__cypress/runner/cypress_runner.js:115800:70)
+      at tryCatcher (http://localhost:5173/__cypress/runner/cypress_runner.js:1777:23)
+      at Promise.attempt.Promise.try (http://localhost:5173/__cypress/runner/cypress_runner.js:4285:29)
+      at whenStable (http://localhost:5173/__cypress/runner/cypress_runner.js:147344:68)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:147285:14)
+      at tryCatcher (http://localhost:5173/__cypress/runner/cypress_runner.js:1777:23)
+      at Promise._settlePromiseFromHandler (http://localhost:5173/__cypress/runner/cypress_runner.js:1489:31)
+      at Promise._settlePromise (http://localhost:5173/__cypress/runner/cypress_runner.js:1546:18)
+      at Promise._settlePromise0 (http://localhost:5173/__cypress/runner/cypress_runner.js:1591:10)
+      at Promise._settlePromises (http://localhost:5173/__cypress/runner/cypress_runner.js:1671:18)
+      at Promise._fulfill (http://localhost:5173/__cypress/runner/cypress_runner.js:1615:18)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:5420:46)
+  From Your Spec Code:
+      at Object.proxyGetter [as get] (http://localhost:5173/__cypress/runner/cypress_runner.js:80410:22)
+      at exists (http://localhost:5173/__cypress/runner/cypress_runner.js:146526:26)
+      at elExists (http://localhost:5173/__cypress/runner/cypress_runner.js:146541:10)
+      at ensureExistence (http://localhost:5173/__cypress/runner/cypress_runner.js:146722:22)
+      at onFailFn (http://localhost:5173/__cypress/runner/cypress_runner.js:146751:53)
+
+
+
+[mochawesome] Report JSON saved to /Users/jeffersonardila/Documents/PERSONAL/REPOS/SDET/cypress-ui-framework-sandbox/cypress/reports/mochawesome/mochawesome_02022026_174113.json
+
+
+  (Results)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Tests:        1                                                                                │
+  │ Passing:      0                                                                                │
+  │ Failing:      1                                                                                │
+  │ Pending:      0                                                                                │
+  │ Skipped:      0                                                                                │
+  │ Screenshots:  3                                                                                │
+  │ Video:        true                                                                             │
+  │ Duration:     12 seconds                                                                       │
+  │ Spec Ran:     admin.cy.ts                                                                      │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+  (Screenshots)
+
+  -  /Users/jeffersonardila/Documents/PERSONAL/REPOS/SDET/cypress-ui-framework-sandbo     (1280x633)
+     x/cypress/screenshots/admin.cy.ts/Admin Products Management -- Product Search an               
+     d Filter -- should filter by category (failed).png                                             
+  -  /Users/jeffersonardila/Documents/PERSONAL/REPOS/SDET/cypress-ui-framework-sandbo     (1280x633)
+     x/cypress/screenshots/admin.cy.ts/Admin Products Management -- Product Search an               
+     d Filter -- should filter by category (failed) (attempt 2).png                                 
+  -  /Users/jeffersonardila/Documents/PERSONAL/REPOS/SDET/cypress-ui-framework-sandbo     (1280x633)
+     x/cypress/screenshots/admin.cy.ts/Admin Products Management -- Product Search an               
+     d Filter -- should filter by category (failed) (attempt 3).png                                 
+
+
+  (Video)
+
+  -  Started compressing: Compressing to 32 CRF                                                     
+  -  Finished compressing: 0 seconds                                                 
+
+  -  Video output: /Users/jeffersonardila/Documents/PERSONAL/REPOS/SDET/cypress-ui-framework-sandbox/cypress/videos/admin.cy.ts.mp4
+
+
+====================================================================================================
+
+  (Run Finished)
+
+
+       Spec                                              Tests  Passing  Failing  Pending  Skipped  
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ ✖  admin.cy.ts                              00:12        1        -        1        -        - │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+    ✖  1 of 1 failed (100%)                     00:12        1        -        1        -        -  
+

@@ -25,12 +25,18 @@ module.exports = defineConfig({
   // =================================
   // Timeouts
   // =================================
-  defaultCommandTimeout: parseInt(process.env.CYPRESS_DEFAULT_COMMAND_TIMEOUT) || 10000,
-  pageLoadTimeout: parseInt(process.env.CYPRESS_PAGE_LOAD_TIMEOUT) || 60000,
-  requestTimeout: parseInt(process.env.CYPRESS_REQUEST_TIMEOUT) || 30000,
-  responseTimeout: 30000,
-  execTimeout: 60000,
-  taskTimeout: 60000,
+  defaultCommandTimeout: parseInt(process.env.CYPRESS_DEFAULT_COMMAND_TIMEOUT) || 5000,
+  pageLoadTimeout: parseInt(process.env.CYPRESS_PAGE_LOAD_TIMEOUT) || 5000,
+  requestTimeout: parseInt(process.env.CYPRESS_REQUEST_TIMEOUT) || 5000,
+  responseTimeout: 5000,
+  execTimeout: 5000,
+  taskTimeout: 5000,
+
+  // =================================
+  // Network Settings
+  // =================================
+  numTestsKeptInMemory: 0,
+  watchForFileChanges: false,
 
   // =================================
   // Retries Configuration
@@ -134,7 +140,7 @@ module.exports = defineConfig({
       allureWriter(on, config);
 
       // Grep plugin setup
-      require('@bahmutov/cy-grep/src/plugin')(config);
+      // require('@bahmutov/cy-grep/src/plugin')(config);
 
       // Custom task for logging
       on('task', {

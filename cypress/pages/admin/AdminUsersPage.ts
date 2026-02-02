@@ -50,40 +50,44 @@ class AdminUsersPage extends BasePage {
   }
 
   // Form Elements
+  get userModal() {
+    return cy.get('[data-testid="user-modal"]');
+  }
+
   get formModal() {
-    return cy.get(this.selectors.FORM.MODAL);
+    return cy.get('[data-testid="user-modal"]');
   }
 
   get firstNameInput() {
-    return cy.get(this.selectors.FORM.FIRST_NAME);
+    return cy.get('[data-testid="user-first-name"]');
   }
 
   get lastNameInput() {
-    return cy.get(this.selectors.FORM.LAST_NAME);
+    return cy.get('[data-testid="user-last-name"]');
   }
 
   get emailInput() {
-    return cy.get(this.selectors.FORM.EMAIL);
+    return cy.get('[data-testid="user-email"]');
   }
 
   get passwordInput() {
-    return cy.get(this.selectors.FORM.PASSWORD);
+    return cy.get('[data-testid="user-password"]');
   }
 
   get roleSelect() {
-    return cy.get(this.selectors.FORM.ROLE);
+    return cy.get('[data-testid="user-role"]');
   }
 
   get statusSelect() {
-    return cy.get(this.selectors.FORM.STATUS);
+    return cy.get('[data-testid="user-status"]');
   }
 
   get submitButton() {
-    return cy.get(this.selectors.FORM.SUBMIT);
+    return cy.get('[data-testid="submit-user"]');
   }
 
   get cancelButton() {
-    return cy.get(this.selectors.FORM.CANCEL);
+    return cy.get('[data-testid="cancel-user"]');
   }
 
   // =================================
@@ -238,12 +242,104 @@ class AdminUsersPage extends BasePage {
     return this;
   }
 
+  submitUserForm() {
+    return this.submitForm();
+  }
+
   /**
    * Cancel user form
    * @returns {AdminUsersPage} This page instance for chaining
    */
   cancelForm() {
     this.cancelButton.click();
+    return this;
+  }
+
+  /**
+   * Click edit user
+   * @param {number} index - User index
+   * @returns {AdminUsersPage} This page instance for chaining
+   */
+  clickEditUser(index) {
+    this.getUserRow(index).find('[data-testid="edit-button"]').click();
+    return this;
+  }
+
+  /**
+   * Click delete user
+   * @param {number} index - User index
+   * @returns {AdminUsersPage} This page instance for chaining
+   */
+  clickDeleteUser(index) {
+    this.getUserRow(index).find('[data-testid="delete-button"]').click();
+    return this;
+  }
+
+  /**
+   * Select role
+   * @param {string} role - Role to select
+   * @returns {AdminUsersPage} This page instance for chaining
+   */
+  selectRole(role) {
+    this.roleSelect.select(role);
+    return this;
+  }
+
+  /**
+   * Select status
+   * @param {string} status - Status to select
+   * @returns {AdminUsersPage} This page instance for chaining
+   */
+  selectStatus(status) {
+    this.statusSelect.select(status);
+    return this;
+  }
+
+  /**
+   * Send password reset
+   * @param {number} index - User index
+   * @returns {AdminUsersPage} This page instance for chaining
+   */
+  sendPasswordReset(index) {
+    this.getUserRow(index).find('[data-testid="reset-password"]').click();
+    return this;
+  }
+
+  /**
+   * Impersonate user
+   * @param {number} index - User index
+   * @returns {AdminUsersPage} This page instance for chaining
+   */
+  impersonateUser(index) {
+    this.getUserRow(index).find('[data-testid="impersonate-user"]').click();
+    return this;
+  }
+
+  /**
+   * View user activity
+   * @param {number} index - User index
+   * @returns {AdminUsersPage} This page instance for chaining
+   */
+  viewUserActivity(index) {
+    this.getUserRow(index).find('[data-testid="view-activity"]').click();
+    return this;
+  }
+
+  /**
+   * Mock create user error
+   * @param {string} errorMessage - Error message
+   * @returns {AdminUsersPage} This page instance for chaining
+   */
+  mockCreateUserError(errorMessage) {
+    cy.intercept('POST', '**/users', {
+      statusCode: 400,
+      body: {
+        success: false,
+        error: {
+          message: errorMessage,
+        },
+      },
+    }).as('createUserError');
     return this;
   }
 
@@ -395,9 +491,13 @@ class AdminUsersPage extends BasePage {
    * @param {string} [alias='createUser'] - Intercept alias
    * @returns {AdminUsersPage} This page instance for chaining
    */
-  interceptCreateUserRequest(alias = 'createUser') {
+  interceptCreateUser(alias = 'createUser') {
     cy.intercept('POST', '**/users').as(alias);
     return this;
+  }
+
+  interceptCreateUserRequest(alias = 'createUser') {
+    return this.interceptCreateUser(alias);
   }
 
   /**
@@ -405,9 +505,13 @@ class AdminUsersPage extends BasePage {
    * @param {string} [alias='updateUser'] - Intercept alias
    * @returns {AdminUsersPage} This page instance for chaining
    */
-  interceptUpdateUserRequest(alias = 'updateUser') {
+  interceptUpdateUser(alias = 'updateUser') {
     cy.intercept('PUT', '**/users/*').as(alias);
     return this;
+  }
+
+  interceptUpdateUserRequest(alias = 'updateUser') {
+    return this.interceptUpdateUser(alias);
   }
 
   /**
@@ -415,9 +519,13 @@ class AdminUsersPage extends BasePage {
    * @param {string} [alias='deleteUser'] - Intercept alias
    * @returns {AdminUsersPage} This page instance for chaining
    */
-  interceptDeleteUserRequest(alias = 'deleteUser') {
+  interceptDeleteUser(alias = 'deleteUser') {
     cy.intercept('DELETE', '**/users/*').as(alias);
     return this;
+  }
+
+  interceptDeleteUserRequest(alias = 'deleteUser') {
+    return this.interceptDeleteUser(alias);
   }
 
   /**
@@ -427,7 +535,7 @@ class AdminUsersPage extends BasePage {
    * @returns {AdminUsersPage} This page instance for chaining
    */
   mockUsers(users, alias = 'getUsers') {
-    cy.intercept('GET', '**/users*', {
+    cy.intercept('GET', '/api/**/users*', {
       statusCode: 200,
       body: {
         success: true,

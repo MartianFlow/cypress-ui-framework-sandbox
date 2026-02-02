@@ -1,9 +1,19 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { db, schema } from '../db/index.js';
-import { eq, like, and } from 'drizzle-orm';
-import { successResponse, errorResponse, paginatedResponse } from '../utils/response.js';
+import { eq } from 'drizzle-orm';
+import { successResponse, errorResponse } from '../utils/response.js';
+import { authMiddleware, requireRole } from '../middleware/auth.js';
+import { slugify } from '@ecommerce/shared';
 
 const categories = new Hono();
+
+const createCategorySchema = z.object({
+  name: z.string().min(2).max(100),
+  slug: z.string().min(2).max(100).optional(),
+  description: z.string().optional(),
+  parentId: z.number().int().positive().nullable().optional(),
+});
 
 // GET /categories
 categories.get('/', async (c) => {
@@ -14,14 +24,14 @@ categories.get('/', async (c) => {
   return successResponse(c, { categories: allCategories });
 });
 
-// GET /categories/:slug
-categories.get('/:slug', async (c) => {
-  const slug = c.req.param('slug');
+// GET /categories/:id
+categories.get('/:id', async (c) => {
+  const id = parseInt(c.req.param('id'));
 
   const [category] = await db
     .select()
     .from(schema.categories)
-    .where(eq(schema.categories.slug, slug));
+    .where(eq(schema.categories.id, id));
 
   if (!category) {
     return errorResponse(c, 'Category not found', 404, 'NOT_FOUND');
@@ -30,83 +40,107 @@ categories.get('/:slug', async (c) => {
   return successResponse(c, { category });
 });
 
-// GET /categories/:slug/products
-categories.get('/:slug/products', async (c) => {
-  const slug = c.req.param('slug');
-  const page = parseInt(c.req.query('page') || '1');
-  const pageSize = parseInt(c.req.query('pageSize') || '12');
-  const minPrice = c.req.query('minPrice') ? parseFloat(c.req.query('minPrice')!) : undefined;
-  const maxPrice = c.req.query('maxPrice') ? parseFloat(c.req.query('maxPrice')!) : undefined;
-  const search = c.req.query('search');
-  const sortBy = c.req.query('sortBy') || 'newest';
+// POST /categories (admin)
+categories.post('/', authMiddleware, requireRole('admin'), async (c) => {
+  const body = await c.req.json();
+  const result = createCategorySchema.safeParse(body);
 
-  // Get category
-  const [category] = await db
+  if (!result.success) {
+    return errorResponse(c, 'Validation failed', 400, 'VALIDATION_ERROR',
+      Object.fromEntries(result.error.errors.map(e => [e.path.join('.'), [e.message]]))
+    );
+  }
+
+  // Generate slug if not provided
+  const slug = result.data.slug || slugify(result.data.name);
+
+  // Check if slug exists
+  const [existing] = await db
     .select()
     .from(schema.categories)
     .where(eq(schema.categories.slug, slug));
 
-  if (!category) {
+  if (existing) {
+    return errorResponse(c, 'Category slug already exists', 400, 'SLUG_EXISTS');
+  }
+
+  const [category] = await db
+    .insert(schema.categories)
+    .values({
+      name: result.data.name,
+      slug,
+      description: result.data.description || null,
+      parentId: result.data.parentId || null,
+    })
+    .returning();
+
+  return successResponse(c, { category }, 201);
+});
+
+// PUT /categories/:id (admin)
+categories.put('/:id', authMiddleware, requireRole('admin'), async (c) => {
+  const id = parseInt(c.req.param('id'));
+  const body = await c.req.json();
+  const result = createCategorySchema.partial().safeParse(body);
+
+  if (!result.success) {
+    return errorResponse(c, 'Validation failed', 400, 'VALIDATION_ERROR',
+      Object.fromEntries(result.error.errors.map(e => [e.path.join('.'), [e.message]]))
+    );
+  }
+
+  const [existing] = await db
+    .select()
+    .from(schema.categories)
+    .where(eq(schema.categories.id, id));
+
+  if (!existing) {
     return errorResponse(c, 'Category not found', 404, 'NOT_FOUND');
   }
 
-  // Build query
-  let allProducts = await db
+  const updateData: Record<string, unknown> = {};
+  if (result.data.name) {
+    updateData.name = result.data.name;
+    updateData.slug = result.data.slug || slugify(result.data.name);
+  }
+  if (result.data.description !== undefined) updateData.description = result.data.description;
+  if (result.data.parentId !== undefined) updateData.parentId = result.data.parentId;
+
+  const [category] = await db
+    .update(schema.categories)
+    .set(updateData)
+    .where(eq(schema.categories.id, id))
+    .returning();
+
+  return successResponse(c, { category });
+});
+
+// DELETE /categories/:id (admin)
+categories.delete('/:id', authMiddleware, requireRole('admin'), async (c) => {
+  const id = parseInt(c.req.param('id'));
+
+  const [existing] = await db
+    .select()
+    .from(schema.categories)
+    .where(eq(schema.categories.id, id));
+
+  if (!existing) {
+    return errorResponse(c, 'Category not found', 404, 'NOT_FOUND');
+  }
+
+  // Check if category has products
+  const products = await db
     .select()
     .from(schema.products)
-    .where(
-      and(
-        eq(schema.products.categoryId, category.id),
-        eq(schema.products.status, 'active')
-      )
-    );
+    .where(eq(schema.products.categoryId, id));
 
-  // Apply filters
-  if (minPrice !== undefined) {
-    allProducts = allProducts.filter(p => p.price >= minPrice);
-  }
-  if (maxPrice !== undefined) {
-    allProducts = allProducts.filter(p => p.price <= maxPrice);
-  }
-  if (search) {
-    const searchLower = search.toLowerCase();
-    allProducts = allProducts.filter(p =>
-      p.name.toLowerCase().includes(searchLower) ||
-      p.description.toLowerCase().includes(searchLower)
-    );
+  if (products.length > 0) {
+    return errorResponse(c, 'Cannot delete category with products', 400, 'HAS_PRODUCTS');
   }
 
-  // Sort
-  switch (sortBy) {
-    case 'price_asc':
-      allProducts.sort((a, b) => a.price - b.price);
-      break;
-    case 'price_desc':
-      allProducts.sort((a, b) => b.price - a.price);
-      break;
-    case 'name':
-      allProducts.sort((a, b) => a.name.localeCompare(b.name));
-      break;
-    case 'rating':
-      allProducts.sort((a, b) => b.rating - a.rating);
-      break;
-    case 'newest':
-    default:
-      allProducts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
+  await db.delete(schema.categories).where(eq(schema.categories.id, id));
 
-  const total = allProducts.length;
-  const offset = (page - 1) * pageSize;
-  const paginatedProducts = allProducts.slice(offset, offset + pageSize);
-
-  // Parse images JSON
-  const products = paginatedProducts.map(p => ({
-    ...p,
-    images: JSON.parse(p.images),
-    category,
-  }));
-
-  return paginatedResponse(c, products, page, pageSize, total);
+  return successResponse(c, { message: 'Category deleted successfully' });
 });
 
 export default categories;

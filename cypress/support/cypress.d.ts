@@ -15,10 +15,65 @@ declare namespace Cypress {
     loginAsAdminUser(): Chainable<void>;
 
     /**
+     * Custom command to login as admin user
+     * @example cy.loginAsAdmin()
+     */
+    loginAsAdmin(options?: { cached?: boolean }): Chainable<void>;
+
+    /**
+     * Custom command to login via UI
+     * @example cy.login('email@test.com', 'password123')
+     */
+    login(email: string, password: string, options?: { rememberMe?: boolean; cached?: boolean }): Chainable<void>;
+
+    /**
+     * Custom command to login via API
+     * @example cy.loginByApi('email@test.com', 'password123')
+     */
+    loginByApi(email: string, password: string, options?: { cached?: boolean }): Chainable<void>;
+
+    /**
      * Custom command to login with credentials
      * @example cy.loginWithCredentials('email@test.com', 'password')
      */
     loginWithCredentials(email: string, password: string): Chainable<void>;
+
+    /**
+     * Custom command to get current user info
+     * @example cy.getCurrentUser()
+     */
+    getCurrentUser(): Chainable<any>;
+
+    /**
+     * Custom command to verify user is logged in
+     * @example cy.verifyLoggedIn('user@example.com')
+     */
+    verifyLoggedIn(expectedEmail?: string): Chainable<void>;
+
+    /**
+     * Custom command to verify user is logged out
+     * @example cy.verifyLoggedOut()
+     */
+    verifyLoggedOut(): Chainable<void>;
+
+    /**
+     * Custom command to set auth state
+     * @example cy.setAuthState('token123', { id: 1, email: 'test@example.com' })
+     */
+    setAuthState(token: string, user?: any): Chainable<void>;
+
+    /**
+     * Custom command to login with OAuth
+     * @example cy.loginWithOAuth('google')
+     */
+    loginWithOAuth(provider: string): Chainable<void>;
+
+    /**
+     * Custom command to preserve auth cookies
+     * @deprecated Use cy.session() instead
+     * @example cy.preserveAuthCookies()
+     */
+    preserveAuthCookies(): Chainable<void>;
 
     /**
      * Custom command to clear authentication

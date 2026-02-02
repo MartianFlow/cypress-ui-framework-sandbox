@@ -29,6 +29,166 @@ const updateOrderStatusSchema = z.object({
   status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
 });
 
+// ==========================================
+// Admin Routes (must be before /:id routes)
+// ==========================================
+
+// GET /orders/admin (admin only)
+orders.get('/admin', requireRole('admin'), async (c) => {
+  const page = parseInt(c.req.query('page') || '1');
+  const pageSize = parseInt(c.req.query('pageSize') || '10');
+  const status = c.req.query('status');
+
+  let allOrders = await db
+    .select({
+      id: schema.orders.id,
+      userId: schema.orders.userId,
+      status: schema.orders.status,
+      subtotal: schema.orders.subtotal,
+      tax: schema.orders.tax,
+      shipping: schema.orders.shipping,
+      total: schema.orders.total,
+      shippingAddress: schema.orders.shippingAddress,
+      billingAddress: schema.orders.billingAddress,
+      paymentMethod: schema.orders.paymentMethod,
+      paymentStatus: schema.orders.paymentStatus,
+      notes: schema.orders.notes,
+      createdAt: schema.orders.createdAt,
+      updatedAt: schema.orders.updatedAt,
+      userEmail: schema.users.email,
+      userFirstName: schema.users.firstName,
+      userLastName: schema.users.lastName,
+    })
+    .from(schema.orders)
+    .leftJoin(schema.users, eq(schema.orders.userId, schema.users.id))
+    .orderBy(desc(schema.orders.createdAt));
+
+  if (status) {
+    allOrders = allOrders.filter(o => o.status === status);
+  }
+
+  const total = allOrders.length;
+  const offset = (page - 1) * pageSize;
+  const paginatedOrders = allOrders.slice(offset, offset + pageSize);
+
+  const ordersWithItems = await Promise.all(
+    paginatedOrders.map(async (order) => {
+      const items = await db
+        .select()
+        .from(schema.orderItems)
+        .where(eq(schema.orderItems.orderId, order.id));
+
+      return {
+        ...order,
+        shippingAddress: JSON.parse(order.shippingAddress),
+        billingAddress: JSON.parse(order.billingAddress),
+        user: {
+          email: order.userEmail,
+          firstName: order.userFirstName,
+          lastName: order.userLastName,
+        },
+        items,
+      };
+    })
+  );
+
+  return paginatedResponse(c, ordersWithItems, page, pageSize, total);
+});
+
+// GET /orders/admin/export (admin only)
+orders.get('/admin/export', requireRole('admin'), async (c) => {
+  const status = c.req.query('status');
+
+  let allOrders = await db
+    .select({
+      id: schema.orders.id,
+      userId: schema.orders.userId,
+      status: schema.orders.status,
+      subtotal: schema.orders.subtotal,
+      tax: schema.orders.tax,
+      shipping: schema.orders.shipping,
+      total: schema.orders.total,
+      paymentMethod: schema.orders.paymentMethod,
+      paymentStatus: schema.orders.paymentStatus,
+      createdAt: schema.orders.createdAt,
+      userEmail: schema.users.email,
+      userFirstName: schema.users.firstName,
+      userLastName: schema.users.lastName,
+    })
+    .from(schema.orders)
+    .leftJoin(schema.users, eq(schema.orders.userId, schema.users.id))
+    .orderBy(desc(schema.orders.createdAt));
+
+  if (status) {
+    allOrders = allOrders.filter(o => o.status === status);
+  }
+
+  // Create CSV content
+  const headers = ['Order ID', 'Customer', 'Email', 'Status', 'Payment Status', 'Total', 'Date'];
+  const rows = allOrders.map(order => [
+    `ORD-${String(order.id).padStart(5, '0')}`,
+    `${order.userFirstName} ${order.userLastName}`,
+    order.userEmail,
+    order.status,
+    order.paymentStatus,
+    `$${order.total.toFixed(2)}`,
+    new Date(order.createdAt).toLocaleDateString(),
+  ]);
+
+  const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+
+  return c.text(csv, 200, {
+    'Content-Type': 'text/csv',
+    'Content-Disposition': `attachment; filename="orders-export-${Date.now()}.csv"`,
+  });
+});
+
+// PUT /orders/admin/:id/status (admin only)
+orders.put('/admin/:id/status', requireRole('admin'), async (c) => {
+  const orderId = parseInt(c.req.param('id'));
+  const body = await c.req.json();
+  const result = updateOrderStatusSchema.safeParse(body);
+
+  if (!result.success) {
+    return errorResponse(c, 'Validation failed', 400, 'VALIDATION_ERROR',
+      Object.fromEntries(result.error.errors.map(e => [e.path.join('.'), [e.message]]))
+    );
+  }
+
+  const [order] = await db
+    .select()
+    .from(schema.orders)
+    .where(eq(schema.orders.id, orderId));
+
+  if (!order) {
+    return errorResponse(c, 'Order not found', 404, 'NOT_FOUND');
+  }
+
+  const [updatedOrder] = await db
+    .update(schema.orders)
+    .set({ status: result.data.status, updatedAt: new Date().toISOString() })
+    .where(eq(schema.orders.id, orderId))
+    .returning();
+
+  const items = await db
+    .select()
+    .from(schema.orderItems)
+    .where(eq(schema.orderItems.orderId, orderId));
+
+  return successResponse(c, {
+    order: {
+      ...updatedOrder,
+      shippingAddress: JSON.parse(updatedOrder.shippingAddress),
+      billingAddress: JSON.parse(updatedOrder.billingAddress),
+      items,
+    },
+  });
+});
+
+// ==========================================
+// User Routes
+// ==========================================
+
 // GET /orders
 orders.get('/', async (c) => {
   const user = c.get('user');
@@ -257,110 +417,6 @@ orders.put('/:id/cancel', async (c) => {
       shippingAddress: JSON.parse(updatedOrder.shippingAddress),
       billingAddress: JSON.parse(updatedOrder.billingAddress),
       items: orderItems,
-    },
-  });
-});
-
-// GET /orders/admin (admin only)
-orders.get('/admin', requireRole('admin'), async (c) => {
-  const page = parseInt(c.req.query('page') || '1');
-  const pageSize = parseInt(c.req.query('pageSize') || '10');
-  const status = c.req.query('status');
-
-  let allOrders = await db
-    .select({
-      id: schema.orders.id,
-      userId: schema.orders.userId,
-      status: schema.orders.status,
-      subtotal: schema.orders.subtotal,
-      tax: schema.orders.tax,
-      shipping: schema.orders.shipping,
-      total: schema.orders.total,
-      shippingAddress: schema.orders.shippingAddress,
-      billingAddress: schema.orders.billingAddress,
-      paymentMethod: schema.orders.paymentMethod,
-      paymentStatus: schema.orders.paymentStatus,
-      notes: schema.orders.notes,
-      createdAt: schema.orders.createdAt,
-      updatedAt: schema.orders.updatedAt,
-      userEmail: schema.users.email,
-      userFirstName: schema.users.firstName,
-      userLastName: schema.users.lastName,
-    })
-    .from(schema.orders)
-    .leftJoin(schema.users, eq(schema.orders.userId, schema.users.id))
-    .orderBy(desc(schema.orders.createdAt));
-
-  if (status) {
-    allOrders = allOrders.filter(o => o.status === status);
-  }
-
-  const total = allOrders.length;
-  const offset = (page - 1) * pageSize;
-  const paginatedOrders = allOrders.slice(offset, offset + pageSize);
-
-  const ordersWithItems = await Promise.all(
-    paginatedOrders.map(async (order) => {
-      const items = await db
-        .select()
-        .from(schema.orderItems)
-        .where(eq(schema.orderItems.orderId, order.id));
-
-      return {
-        ...order,
-        shippingAddress: JSON.parse(order.shippingAddress),
-        billingAddress: JSON.parse(order.billingAddress),
-        user: {
-          email: order.userEmail,
-          firstName: order.userFirstName,
-          lastName: order.userLastName,
-        },
-        items,
-      };
-    })
-  );
-
-  return paginatedResponse(c, ordersWithItems, page, pageSize, total);
-});
-
-// PUT /orders/admin/:id/status (admin only)
-orders.put('/admin/:id/status', requireRole('admin'), async (c) => {
-  const orderId = parseInt(c.req.param('id'));
-  const body = await c.req.json();
-  const result = updateOrderStatusSchema.safeParse(body);
-
-  if (!result.success) {
-    return errorResponse(c, 'Validation failed', 400, 'VALIDATION_ERROR',
-      Object.fromEntries(result.error.errors.map(e => [e.path.join('.'), [e.message]]))
-    );
-  }
-
-  const [order] = await db
-    .select()
-    .from(schema.orders)
-    .where(eq(schema.orders.id, orderId));
-
-  if (!order) {
-    return errorResponse(c, 'Order not found', 404, 'NOT_FOUND');
-  }
-
-  const [updatedOrder] = await db
-    .update(schema.orders)
-    .set({ status: result.data.status, updatedAt: new Date().toISOString() })
-    .where(eq(schema.orders.id, orderId))
-    .returning();
-
-  const items = await db
-    .select()
-    .from(schema.orderItems)
-    .where(eq(schema.orderItems.orderId, orderId));
-
-  return successResponse(c, {
-    order: {
-      ...updatedOrder,
-      shippingAddress: JSON.parse(updatedOrder.shippingAddress),
-      billingAddress: JSON.parse(updatedOrder.billingAddress),
-      items,
     },
   });
 });
