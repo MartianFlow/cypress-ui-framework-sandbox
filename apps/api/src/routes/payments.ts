@@ -78,15 +78,11 @@ payments.post('/process', authMiddleware, async (c) => {
     return errorResponse(c, 'Order already paid', 400, 'ALREADY_PAID');
   }
 
-  // Simulate payment processing (always succeeds in this demo)
-  // In production, integrate with Stripe, PayPal, etc.
-  const simulatedDelay = Math.random() * 1000 + 500; // 500-1500ms
-  await new Promise(resolve => setTimeout(resolve, simulatedDelay));
+  // Deterministic payment simulation based on card number.
+  // Card 4000000000000002 is the designated test-decline card.
+  const cardNumber = result.data.paymentDetails?.cardNumber;
 
-  // Simulate occasional failures (10% chance)
-  const shouldFail = Math.random() < 0.1;
-
-  if (shouldFail) {
+  if (cardNumber === '4000000000000002') {
     await db
       .update(schema.orders)
       .set({ paymentStatus: 'failed', updatedAt: new Date().toISOString() })

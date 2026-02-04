@@ -4,8 +4,7 @@
  * @tags @checkout @ecommerce @regression
  */
 
-import { checkoutPage, cartPage } from '../../../pages';
-import { APP } from '../../../utils/constants/routes';
+import { checkoutPage } from '../../../pages';
 
 describe('Checkout Feature', { tags: ['@checkout', '@ecommerce'] }, () => {
   let checkoutData;
@@ -18,12 +17,11 @@ describe('Checkout Feature', { tags: ['@checkout', '@ecommerce'] }, () => {
 
   beforeEach(() => {
     cy.loginAsTestUser();
-    
-    // Setup cart with items
-    cartPage().mockCart([
-      { id: 1, name: 'Test Product', price: 99.99, quantity: 2 },
-    ]);
-    
+
+    // Setup cart with real API calls – clear first, then add product 118 (qty 2)
+    cy.apiDelete('/cart');
+    cy.apiPost('/cart', { productId: 118, quantity: 2 });
+
     checkoutPage().visit();
   });
 
@@ -59,20 +57,17 @@ describe('Checkout Feature', { tags: ['@checkout', '@ecommerce'] }, () => {
     });
 
     it('should validate required fields', () => {
+      // Submit the form without filling anything – zod errors should appear
       checkoutPage().placeOrderButton.click();
 
-      checkoutPage().shippingFirstName.then(($input) => {
-        expect($input[0].validity.valueMissing).to.be.true;
-      });
+      cy.contains('First name is required').should('be.visible');
     });
 
     it('should validate email format', () => {
       checkoutPage().shippingEmail.type('invalid-email');
       checkoutPage().placeOrderButton.click();
 
-      checkoutPage().shippingEmail.then(($input) => {
-        expect($input[0].validity.typeMismatch).to.be.true;
-      });
+      cy.contains('Invalid email address').should('be.visible');
     });
   });
 
@@ -139,40 +134,31 @@ describe('Checkout Feature', { tags: ['@checkout', '@ecommerce'] }, () => {
   // =================================
 
   describe('Place Order', { tags: '@smoke' }, () => {
-    beforeEach(() => {
-      checkoutPage().mockCreateOrderSuccess({
-        id: 1,
-        orderNumber: 'ORD-001',
-        status: 'pending',
-      });
-    });
-
     it('should place order successfully', () => {
-      checkoutPage()
-        .completeCheckout(checkoutData)
-        .waitForCreateOrderRequest()
-        .its('response.statusCode')
-        .should('eq', 201);
+      checkoutPage().completeCheckout(checkoutData);
 
-      cy.url().should('include', '/orders');
+      // order-confirmation only renders after both POST /orders (201) and POST /payments/process (200) succeed
+      cy.get('[data-testid="order-confirmation"]').should('be.visible');
     });
 
     it('should show order confirmation', () => {
       checkoutPage().completeCheckout(checkoutData);
 
-      cy.wait('@createOrder');
       cy.get('[data-testid="order-confirmation"]').should('be.visible');
     });
 
     it('should disable place order button during submission', () => {
-      cy.intercept('POST', '**/orders', {
-        delay: 1000,
-        statusCode: 201,
-        body: { success: true, data: { id: 1 } },
+      // Intercept order creation with a delayed reply so we can observe the disabled state
+      cy.intercept('POST', '**/orders', (req) => {
+        req.reply((response) => {
+          response.delay = 2000;
+          return response;
+        });
       }).as('slowOrder');
 
       checkoutPage().completeCheckout(checkoutData);
 
+      // Button should be disabled while the request is in-flight
       checkoutPage().placeOrderButton.should('be.disabled');
     });
   });
@@ -183,30 +169,45 @@ describe('Checkout Feature', { tags: ['@checkout', '@ecommerce'] }, () => {
 
   describe('Order Failure', { tags: '@regression' }, () => {
     it('should show error on payment failure', () => {
-      checkoutPage().mockCreateOrderFailure('Payment failed', 400);
-
+      // Use the designated decline card – API returns 400 deterministically
       checkoutPage()
-        .completeCheckout(checkoutData)
-        .waitForCreateOrderRequest();
+        .fillShippingAddress(checkoutData.shipping)
+        .selectPaymentMethod('credit_card')
+        .fillCreditCard({ ...checkoutData.card, number: '4000000000000002' })
+        .placeOrder();
 
+      // Error banner only renders after the payment 400 is received and caught
       checkoutPage().verifyErrorDisplayed('Payment failed');
     });
 
     it('should show error on server error', () => {
-      checkoutPage().mockCreateOrderFailure('Server error', 500);
+      // Mock only the payment endpoint with 500; order creation hits the real API
+      cy.intercept('POST', '**/payments/process', {
+        statusCode: 500,
+        body: {
+          success: false,
+          error: {
+            message: 'Internal server error',
+            code: 'SERVER_ERROR',
+          },
+        },
+      });
 
-      checkoutPage()
-        .completeCheckout(checkoutData)
-        .waitForCreateOrderRequest();
+      checkoutPage().completeCheckout(checkoutData);
 
+      // Error banner only renders after the 500 is received and caught by onSubmit
       checkoutPage().verifyErrorDisplayed();
     });
 
     it('should remain on checkout page after failure', () => {
-      checkoutPage().mockCreateOrderFailure();
+      // Use decline card to trigger a real payment failure
+      checkoutPage()
+        .fillShippingAddress(checkoutData.shipping)
+        .selectPaymentMethod('credit_card')
+        .fillCreditCard({ ...checkoutData.card, number: '4000000000000002' })
+        .placeOrder();
 
-      checkoutPage().completeCheckout(checkoutData);
-
+      checkoutPage().verifyErrorDisplayed();
       cy.url().should('include', '/checkout');
     });
   });
@@ -217,22 +218,15 @@ describe('Checkout Feature', { tags: ['@checkout', '@ecommerce'] }, () => {
 
   describe('Checkout Flow', { tags: '@e2e' }, () => {
     it('should complete full checkout flow', () => {
-      // Mock successful order
-      checkoutPage().mockCreateOrderSuccess({
-        id: 1,
-        orderNumber: 'ORD-12345',
-      });
-
-      // Fill checkout form
+      // Fill and submit the checkout form
       checkoutPage()
         .fillShippingAddress(checkoutData.shipping)
         .selectPaymentMethod('credit_card')
         .fillCreditCard(checkoutData.card)
         .placeOrder();
 
-      // Verify success
-      cy.wait('@createOrder');
-      cy.url().should('match', /orders|confirmation/);
+      // Confirmation only appears after the full order + payment flow completes successfully
+      cy.get('[data-testid="order-confirmation"]').should('be.visible');
     });
   });
 });

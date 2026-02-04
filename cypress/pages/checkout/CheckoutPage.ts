@@ -164,7 +164,7 @@ class CheckoutPage extends BasePage {
       this.shippingZip.clear().type(address.zip);
     }
     if (address.country) {
-      this.shippingCountry.select(address.country);
+      this.shippingCountry.clear().type(address.country);
     }
     return this;
   }
@@ -175,7 +175,11 @@ class CheckoutPage extends BasePage {
    * @returns {CheckoutPage} This page instance for chaining
    */
   selectPaymentMethod(method) {
-    this.paymentMethodSelect.select(method);
+    const methodSelectors = {
+      'credit_card': this.selectors.PAYMENT.CREDIT_CARD,
+      'paypal': this.selectors.PAYMENT.PAYPAL,
+    };
+    cy.get(methodSelectors[method] || this.selectors.PAYMENT.CREDIT_CARD).click();
     return this;
   }
 
@@ -394,7 +398,7 @@ class CheckoutPage extends BasePage {
    * @returns {CheckoutPage} This page instance for chaining
    */
   interceptCreateOrderRequest(alias = 'createOrder') {
-    cy.intercept('POST', '**/orders').as(alias);
+    cy.intercept('POST', '**/orders', (req) => { req.continue(); }).as(alias);
     return this;
   }
 
@@ -404,7 +408,7 @@ class CheckoutPage extends BasePage {
    * @returns {CheckoutPage} This page instance for chaining
    */
   interceptPaymentRequest(alias = 'processPayment') {
-    cy.intercept('POST', '**/payments/process').as(alias);
+    cy.intercept('POST', '**/payments/process', (req) => { req.continue(); }).as(alias);
     return this;
   }
 
