@@ -2,7 +2,7 @@ import { db, schema } from './index.js';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 
-const { users, categories, products, orders, orderItems, reviews, cartItems } = schema;
+const { users, categories, products, orders, orderItems, reviews, cartItems, coupons } = schema;
 
 async function seed() {
   console.log('Seeding database...');
@@ -13,6 +13,7 @@ async function seed() {
   await db.delete(orderItems);
   await db.delete(orders);
   await db.delete(cartItems);
+  await db.delete(coupons);
   await db.delete(products);
   await db.delete(categories);
   await db.delete(users);
@@ -180,6 +181,20 @@ async function seed() {
   console.log('Adding cart items...');
   await db.insert(cartItems).values({ userId: testUserId, productId: allProducts[2].id, quantity: 2 });
   await db.insert(cartItems).values({ userId: testUserId, productId: allProducts[5].id, quantity: 1 });
+
+  // Create coupons
+  console.log('Creating coupons...');
+  const couponsData = [
+    { code: 'SAVE10', type: 'percentage' as const, discount: 10, minOrderAmount: 50, maxUsages: 100, isActive: true },
+    { code: 'SAVE20', type: 'percentage' as const, discount: 20, minOrderAmount: 100, maxUsages: 50, isActive: true },
+    { code: 'FLAT5', type: 'fixed' as const, discount: 5, minOrderAmount: null, maxUsages: null, isActive: true },
+    { code: 'SUMMER', type: 'percentage' as const, discount: 15, minOrderAmount: 75, maxUsages: 200, isActive: true },
+    { code: 'EXPIRED10', type: 'percentage' as const, discount: 10, minOrderAmount: null, maxUsages: null, isActive: true, expiresAt: '2020-01-01T00:00:00.000Z' },
+  ];
+
+  for (const couponData of couponsData) {
+    await db.insert(coupons).values(couponData);
+  }
 
   console.log('Database seeded successfully!');
 }

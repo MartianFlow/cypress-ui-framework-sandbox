@@ -91,6 +91,20 @@ export const reviews = sqliteTable('reviews', {
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Coupons table
+export const coupons = sqliteTable('coupons', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  code: text('code').notNull().unique(),
+  type: text('type', { enum: ['percentage', 'fixed'] }).notNull(),
+  discount: real('discount').notNull(),
+  minOrderAmount: real('min_order_amount'),
+  maxUsages: integer('max_usages'),
+  usageCount: integer('usage_count').notNull().default(0),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  expiresAt: text('expires_at'),
+  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Password reset tokens table
 export const passwordResetTokens = sqliteTable('password_reset_tokens', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -115,5 +129,7 @@ export type OrderItemInsert = typeof orderItems.$inferInsert;
 export type OrderItemSelect = typeof orderItems.$inferSelect;
 export type ReviewInsert = typeof reviews.$inferInsert;
 export type ReviewSelect = typeof reviews.$inferSelect;
+export type CouponInsert = typeof coupons.$inferInsert;
+export type CouponSelect = typeof coupons.$inferSelect;
 export type PasswordResetTokenInsert = typeof passwordResetTokens.$inferInsert;
 export type PasswordResetTokenSelect = typeof passwordResetTokens.$inferSelect;

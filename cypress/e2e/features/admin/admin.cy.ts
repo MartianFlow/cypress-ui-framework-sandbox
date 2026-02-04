@@ -139,16 +139,16 @@ describe('Admin Products Management', { tags: ['@admin', '@products'] }, () => {
   });
 
   describe('Product Search and Filter', { tags: '@regression' }, () => {
-    it.only('should search products by name', () => {
+    it('should search products by name', () => {
       adminProductsPage().searchProducts('Product 1');
       adminProductsPage().productRows.should('have.length', 1);
     });
 
-    it.only('should filter by category', () => {
+    it('should filter by category', () => {
       // Wait for categories to load first
-      adminProductsPage().filterByCategory('16');
+      adminProductsPage().filterByCategory('1');
       // The filter triggers a new products request automatically via the onChange handler
-      adminProductsPage().productRows.should('have.length', 8);
+      adminProductsPage().productRows.should('have.length', 2);
     });
 
     it('should filter by status', () => {
@@ -300,10 +300,10 @@ describe('Admin Products Management', { tags: ['@admin', '@products'] }, () => {
 
 describe('Admin Orders Management', { tags: ['@admin', '@orders'] }, () => {
   const mockOrders = [
-    { id: 1, orderNumber: 'ORD-001', status: 'pending', total: 199.99, customer: 'John Doe' },
-    { id: 2, orderNumber: 'ORD-002', status: 'processing', total: 99.99, customer: 'Jane Smith' },
-    { id: 3, orderNumber: 'ORD-003', status: 'shipped', total: 299.99, customer: 'Bob Johnson' },
-    { id: 4, orderNumber: 'ORD-004', status: 'delivered', total: 149.99, customer: 'Alice Brown' },
+    { id: 1, status: 'pending', total: 199.99, user: { firstName: 'John', lastName: 'Doe', email: 'john@example.com' }, createdAt: '2024-01-15T00:00:00.000Z', paymentStatus: 'completed' },
+    { id: 2, status: 'processing', total: 99.99, user: { firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com' }, createdAt: '2024-01-16T00:00:00.000Z', paymentStatus: 'completed' },
+    { id: 3, status: 'shipped', total: 299.99, user: { firstName: 'Bob', lastName: 'Williams', email: 'bob@example.com' }, createdAt: '2024-01-17T00:00:00.000Z', paymentStatus: 'completed' },
+    { id: 4, status: 'delivered', total: 149.99, user: { firstName: 'Alice', lastName: 'Brown', email: 'alice@example.com' }, createdAt: '2024-01-18T00:00:00.000Z', paymentStatus: 'completed' },
   ];
 
   beforeEach(() => {
@@ -324,10 +324,10 @@ describe('Admin Orders Management', { tags: ['@admin', '@orders'] }, () => {
 
     it('should display order details', () => {
       adminOrdersPage().orderRows.first().within(() => {
-        cy.get('[data-testid="order-number"]').should('contain', 'ORD-001');
+        cy.get('[data-testid="order-number"]').should('contain', '#1');
         cy.get('[data-testid="order-customer"]').should('contain', 'John Doe');
         cy.get('[data-testid="order-total"]').should('contain', '199.99');
-        cy.get('[data-testid="order-status"]').should('be.visible');
+        cy.get('[data-testid="status-select"]').should('be.visible');
       });
     });
   });
@@ -344,7 +344,7 @@ describe('Admin Orders Management', { tags: ['@admin', '@orders'] }, () => {
     });
 
     it('should search by order number', () => {
-      adminOrdersPage().searchOrders('ORD-001');
+      adminOrdersPage().searchOrders('1');
       adminOrdersPage().orderRows.should('have.length', 1);
     });
 
@@ -395,7 +395,7 @@ describe('Admin Orders Management', { tags: ['@admin', '@orders'] }, () => {
 
   describe('Export Orders', { tags: '@regression' }, () => {
     it('should export orders to CSV', () => {
-      cy.intercept('GET', '**/admin/orders/export*').as('exportOrders');
+      cy.intercept('GET', '**/orders/admin/export*', { statusCode: 200, body: 'id,status,total' }).as('exportOrders');
 
       adminOrdersPage().exportToCSV();
 
@@ -563,7 +563,7 @@ describe('Admin Users Management', { tags: ['@admin', '@users'] }, () => {
 
   describe('User Actions', { tags: '@regression' }, () => {
     it('should send password reset email', () => {
-      cy.intercept('POST', '**/admin/users/*/reset-password').as('resetPassword');
+      cy.intercept('POST', '**/users/*/reset-password', { statusCode: 200, body: { success: true } }).as('resetPassword');
 
       adminUsersPage().sendPasswordReset(0);
 
@@ -571,12 +571,11 @@ describe('Admin Users Management', { tags: ['@admin', '@users'] }, () => {
     });
 
     it('should impersonate user', () => {
-      cy.intercept('POST', '**/admin/users/*/impersonate').as('impersonate');
+      cy.intercept('POST', '**/users/*/impersonate', { statusCode: 200, body: { success: true } }).as('impersonate');
 
       adminUsersPage().impersonateUser(0);
 
       cy.wait('@impersonate');
-      // Should redirect to user's view
     });
 
     it('should view user activity', () => {

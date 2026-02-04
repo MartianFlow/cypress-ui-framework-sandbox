@@ -98,11 +98,11 @@ class AdminProductsPage extends BasePage {
   }
 
   get submitButton() {
-    return cy.get('[data-testid="submit-product"]');
+    return cy.get('[data-testid="product-form-submit"]');
   }
 
   get cancelButton() {
-    return cy.get('[data-testid="cancel-product"]');
+    return cy.get('[data-testid="product-form-cancel"]');
   }
 
   get selectedCount() {
@@ -474,19 +474,21 @@ class AdminProductsPage extends BasePage {
    */
   mockProducts(products) {
     // Mock categories to provide a consistent mapping for IDs
-    cy.intercept('GET', '**/api/categories*', {
+    cy.intercept('GET', '**/api/v1/categories*', {
       statusCode: 200,
       body: {
         success: true,
-        categories: [
-          { id: 1, name: 'Electronics', slug: 'electronics' },
-          { id: 2, name: 'Clothing', slug: 'clothing' },
-          { id: 3, name: 'Home', slug: 'home' },
-        ]
+        data: {
+          categories: [
+            { id: 1, name: 'Electronics', slug: 'electronics' },
+            { id: 2, name: 'Clothing', slug: 'clothing' },
+            { id: 3, name: 'Home', slug: 'home' },
+          ]
+        }
       }
     }).as('getCategories');
 
-    cy.intercept('GET', '**/api/products*', (req) => {
+    cy.intercept('GET', '**/api/v1/products*', (req) => {
       const url = new URL(req.url);
       const search = url.searchParams.get('search');
       const category = url.searchParams.get('category') || url.searchParams.get('categoryId');
@@ -540,7 +542,7 @@ class AdminProductsPage extends BasePage {
    * @returns {AdminProductsPage} This page instance for chaining
    */
   interceptGetProductsRequest(alias = 'getProducts') {
-    cy.intercept('GET', '**/api/products*').as(alias);
+    cy.intercept('GET', '**/api/v1/products*').as(alias);
     return this;
   }
 
@@ -550,7 +552,7 @@ class AdminProductsPage extends BasePage {
    * @returns {AdminProductsPage} This page instance for chaining
    */
   interceptCreateProduct(alias = 'createProduct') {
-    cy.intercept('POST', '**/api/products').as(alias);
+    cy.intercept('POST', '**/api/v1/products', { statusCode: 201, body: { success: true, data: {} } }).as(alias);
     return this;
   }
 
@@ -564,7 +566,7 @@ class AdminProductsPage extends BasePage {
    * @returns {AdminProductsPage} This page instance for chaining
    */
   interceptUpdateProduct(alias = 'updateProduct') {
-    cy.intercept('PUT', '**/api/products/*').as(alias);
+    cy.intercept('PUT', '**/api/v1/products/*', { statusCode: 200, body: { success: true, data: {} } }).as(alias);
     return this;
   }
 
@@ -578,7 +580,7 @@ class AdminProductsPage extends BasePage {
    * @returns {AdminProductsPage} This page instance for chaining
    */
   interceptDeleteProduct(alias = 'deleteProduct') {
-    cy.intercept('DELETE', '**/api/products/*').as(alias);
+    cy.intercept('DELETE', '**/api/v1/products/*', { statusCode: 200, body: { success: true } }).as(alias);
     return this;
   }
 
@@ -592,7 +594,7 @@ class AdminProductsPage extends BasePage {
    * @returns {AdminProductsPage} This page instance for chaining
    */
   interceptBulkDelete(alias = 'bulkDelete') {
-    cy.intercept('POST', '**/api/products/bulk-delete').as(alias);
+    cy.intercept('POST', '**/api/v1/products/bulk-delete', { statusCode: 200, body: { success: true } }).as(alias);
     return this;
   }
 
@@ -602,7 +604,7 @@ class AdminProductsPage extends BasePage {
    * @returns {AdminProductsPage} This page instance for chaining
    */
   interceptBulkUpdate(alias = 'bulkUpdate') {
-    cy.intercept('PUT', '**/api/products/bulk-update').as(alias);
+    cy.intercept('PUT', '**/api/v1/products/bulk-update', { statusCode: 200, body: { success: true } }).as(alias);
     return this;
   }
 

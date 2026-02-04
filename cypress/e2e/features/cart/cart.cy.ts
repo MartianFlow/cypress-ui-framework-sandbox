@@ -146,32 +146,37 @@ describe('Cart Feature', { tags: ['@cart', '@ecommerce'] }, () => {
 
   describe('Coupon Code', { tags: '@regression' }, () => {
     beforeEach(() => {
-      cartPage().mockCart([
-        { id: 1, name: 'Test Product', price: 100, quantity: 1 },
-      ]);
+      // Set up real cart via API so the coupon endpoint can calculate discount from DB
+      cy.request({
+        method: 'POST',
+        url: `${Cypress.env('apiUrl')}/auth/login`,
+        body: { email: Cypress.env('testUserEmail'), password: Cypress.env('testUserPassword') },
+      }).then((res) => {
+        const { token } = res.body.data;
+        cy.request({ method: 'DELETE', url: `${Cypress.env('apiUrl')}/cart`, headers: { Authorization: `Bearer ${token}` } });
+        // Product 1: Wireless Bluetooth Headphones ($149.99) — meets SAVE10 min order of $50
+        cy.request({ method: 'POST', url: `${Cypress.env('apiUrl')}/cart`, headers: { Authorization: `Bearer ${token}` }, body: { productId: 1, quantity: 1 } });
+      });
+
+      cy.loginAsTestUser();
       cartPage().visit();
     });
 
     it('should apply valid coupon code', () => {
-      cy.intercept('POST', '**/coupons/apply', {
-        statusCode: 200,
-        body: { success: true, discount: 10 },
-      }).as('applyCoupon');
+      // Spy on the real endpoint (no stub body — request passes through to the backend)
+      cy.intercept('POST', '/api/v1/coupons/apply').as('applyCoupon');
 
       cartPage().applyCoupon('SAVE10');
-      cy.wait('@applyCoupon');
+      cy.wait('@applyCoupon').its('response').should('have.property', 'statusCode', 200);
 
       cartPage().verifyCouponApplied();
     });
 
     it('should show error for invalid coupon', () => {
-      cy.intercept('POST', '**/coupons/apply', {
-        statusCode: 400,
-        body: { success: false, error: 'Invalid coupon' },
-      }).as('invalidCoupon');
+      cy.intercept('POST', '/api/v1/coupons/apply').as('invalidCoupon');
 
       cartPage().applyCoupon('INVALIDCODE');
-      cy.wait('@invalidCoupon');
+      cy.wait('@invalidCoupon').its('response').should('have.property', 'statusCode', 400);
 
       cartPage().verifyCouponError('Invalid coupon');
     });
@@ -209,13 +214,31 @@ describe('Cart Feature', { tags: ['@cart', '@ecommerce'] }, () => {
 
   describe('Cart Persistence', { tags: '@regression' }, () => {
     it('should persist cart across page navigation', () => {
-      // Add item to cart
+      const persistedItem = { id: 1, name: 'Test Product', price: 99.99, quantity: 1 };
+
+      // Mock products listing
+      productsPage().mockProducts([
+        { id: 1, name: 'Test Product', price: 99.99, images: ['/placeholder.jpg'], stock: 10 },
+      ]);
+
+      // Mock add-to-cart POST
+      cy.intercept('POST', '/api/v1/cart', {
+        statusCode: 200,
+        body: { success: true, data: { id: 1, quantity: 1 } },
+      }).as('addToCart');
+
+      // Mock cart GET (served on cart page load)
+      cartPage().mockCart([persistedItem]);
+
+      // Visit products and add item to cart
       cy.visit('/products');
+      cy.wait('@getProducts');
       productsPage().addToCartByIndex(0);
-      
-      // Navigate to cart
+      cy.wait('@addToCart');
+
+      // Navigate to cart and verify item persisted
       cartPage().visit();
-      cartPage().verifyCartHasItems();
+      cartPage().verifyCartHasItems(1);
     });
 
     it('should persist cart after page refresh', () => {

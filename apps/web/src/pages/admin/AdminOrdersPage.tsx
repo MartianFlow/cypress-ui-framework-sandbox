@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Eye } from 'lucide-react';
@@ -15,14 +16,18 @@ export default function AdminOrdersPage() {
 
   const page = parseInt(searchParams.get('page') || '1');
   const statusFilter = searchParams.get('status') || '';
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-orders', page, statusFilter],
+    queryKey: ['admin-orders', page, statusFilter, searchQuery],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', page.toString());
       params.set('pageSize', '10');
       if (statusFilter) params.set('status', statusFilter);
+      if (searchQuery) params.set('search', searchQuery);
       return api.get<PaginatedResponse<Order>>(`/orders/admin?${params.toString()}`);
     },
   });
@@ -58,7 +63,16 @@ export default function AdminOrdersPage() {
 
   return (
     <div data-testid="admin-orders" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Orders</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+        <button
+          data-testid="export-csv"
+          onClick={() => api.get('/orders/admin/export')}
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+        >
+          Export CSV
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
@@ -72,6 +86,8 @@ export default function AdminOrdersPage() {
             <input
               type="text"
               data-testid="search-orders"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search orders..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -89,6 +105,20 @@ export default function AdminOrdersPage() {
               </option>
             ))}
           </select>
+          <input
+            type="date"
+            data-testid="date-from"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+          <input
+            type="date"
+            data-testid="date-to"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
         </div>
       </div>
 

@@ -54,17 +54,19 @@ export default function CartItem({ item }: CartItemProps) {
       <div className="flex-1 min-w-0">
         <Link
           to={`/products/${item.product.id}`}
+          data-testid="cart-item-name"
           className="font-medium text-gray-900 hover:text-primary-600 line-clamp-2"
         >
           {item.product.name}
         </Link>
-        <p className="text-sm text-gray-500 mt-1">
+        <p data-testid="cart-item-price" className="text-sm text-gray-500 mt-1">
           {formatPrice(item.product.price)} each
         </p>
 
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center border rounded-lg">
             <button
+              data-testid="cart-quantity-decrease"
               onClick={() => handleQuantityChange(localQuantity - 1)}
               disabled={isLoading || localQuantity <= 1}
               className="p-2 hover:bg-gray-100 disabled:opacity-50"
@@ -81,6 +83,7 @@ export default function CartItem({ item }: CartItemProps) {
               className="w-12 text-center border-x py-1 focus:outline-none"
             />
             <button
+              data-testid="cart-quantity-increase"
               onClick={() => handleQuantityChange(localQuantity + 1)}
               disabled={isLoading || localQuantity >= item.product.stock}
               className="p-2 hover:bg-gray-100 disabled:opacity-50"

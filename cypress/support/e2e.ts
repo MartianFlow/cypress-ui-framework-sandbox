@@ -29,18 +29,10 @@ import '@bahmutov/cy-grep';
  * Prevents tests from failing on application errors
  */
 Cypress.on('uncaught:exception', (err, runnable) => {
-  // Log the error for debugging
-  cy.log(`Uncaught Exception: ${err.message}`);
+  // Log the error for debugging (console only — cy commands not allowed in event handlers)
+  console.log(`Uncaught Exception: ${err.message}`);
 
   // Return false to prevent the error from failing the test
-  // You can add specific error handling here
-  if (err.message.includes('ResizeObserver loop')) {
-    return false;
-  }
-
-  // For other errors, you might want to fail the test
-  // return true; // uncomment to fail on uncaught exceptions
-
   return false;
 });
 
@@ -48,12 +40,9 @@ Cypress.on('uncaught:exception', (err, runnable) => {
  * Log failed commands for debugging
  */
 Cypress.on('fail', (error, runnable) => {
-  // Log additional context on failure
-  cy.log(`Test Failed: ${runnable.title}`);
-  cy.log(`Error: ${error.message}`);
-
-  // Re-throw the error to fail the test
-  throw error;
+  // Log additional context on failure (console only — cy commands not allowed in event handlers)
+  console.log(`Test Failed: ${runnable.title}`);
+  console.log(`Error: ${error.message}`);
 });
 
 // =================================

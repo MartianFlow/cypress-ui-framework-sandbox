@@ -6,6 +6,7 @@ import products from './products.js';
 import cart from './cart.js';
 import orders from './orders.js';
 import payments from './payments.js';
+import coupons from './coupons.js';
 
 const api = new Hono();
 
@@ -17,6 +18,7 @@ api.route('/products', products);
 api.route('/cart', cart);
 api.route('/orders', orders);
 api.route('/payments', payments);
+api.route('/coupons', coupons);
 
 // Health check
 api.get('/health', (c) => {

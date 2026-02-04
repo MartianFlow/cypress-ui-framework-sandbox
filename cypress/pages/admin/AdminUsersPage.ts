@@ -67,7 +67,7 @@ class AdminUsersPage extends BasePage {
   }
 
   get emailInput() {
-    return cy.get('[data-testid="user-email"]');
+    return cy.get('[data-testid="user-email-input"]');
   }
 
   get passwordInput() {
@@ -75,11 +75,11 @@ class AdminUsersPage extends BasePage {
   }
 
   get roleSelect() {
-    return cy.get('[data-testid="user-role"]');
+    return cy.get('[data-testid="user-role-select"]');
   }
 
   get statusSelect() {
-    return cy.get('[data-testid="user-status"]');
+    return cy.get('[data-testid="user-status-select"]');
   }
 
   get submitButton() {
@@ -261,7 +261,7 @@ class AdminUsersPage extends BasePage {
    * @returns {AdminUsersPage} This page instance for chaining
    */
   clickEditUser(index) {
-    this.getUserRow(index).find('[data-testid="edit-button"]').click();
+    this.getUserRow(index).find(this.selectors.EDIT_BUTTON).click();
     return this;
   }
 
@@ -271,7 +271,7 @@ class AdminUsersPage extends BasePage {
    * @returns {AdminUsersPage} This page instance for chaining
    */
   clickDeleteUser(index) {
-    this.getUserRow(index).find('[data-testid="delete-button"]').click();
+    this.getUserRow(index).find(this.selectors.DELETE_BUTTON).click();
     return this;
   }
 
@@ -331,7 +331,7 @@ class AdminUsersPage extends BasePage {
    * @returns {AdminUsersPage} This page instance for chaining
    */
   mockCreateUserError(errorMessage) {
-    cy.intercept('POST', '**/users', {
+    cy.intercept('POST', '**/api/v1/users', {
       statusCode: 400,
       body: {
         success: false,
@@ -482,7 +482,7 @@ class AdminUsersPage extends BasePage {
    * @returns {AdminUsersPage} This page instance for chaining
    */
   interceptGetUsersRequest(alias = 'getUsers') {
-    cy.intercept('GET', '**/users*').as(alias);
+    cy.intercept('GET', '**/api/v1/users*').as(alias);
     return this;
   }
 
@@ -492,7 +492,7 @@ class AdminUsersPage extends BasePage {
    * @returns {AdminUsersPage} This page instance for chaining
    */
   interceptCreateUser(alias = 'createUser') {
-    cy.intercept('POST', '**/users').as(alias);
+    cy.intercept('POST', '**/api/v1/users', { statusCode: 201, body: { success: true, data: {} } }).as(alias);
     return this;
   }
 
@@ -506,7 +506,7 @@ class AdminUsersPage extends BasePage {
    * @returns {AdminUsersPage} This page instance for chaining
    */
   interceptUpdateUser(alias = 'updateUser') {
-    cy.intercept('PUT', '**/users/*').as(alias);
+    cy.intercept('PUT', '**/api/v1/users/*', { statusCode: 200, body: { success: true, data: {} } }).as(alias);
     return this;
   }
 
@@ -520,7 +520,7 @@ class AdminUsersPage extends BasePage {
    * @returns {AdminUsersPage} This page instance for chaining
    */
   interceptDeleteUser(alias = 'deleteUser') {
-    cy.intercept('DELETE', '**/users/*').as(alias);
+    cy.intercept('DELETE', '**/api/v1/users/*', { statusCode: 200, body: { success: true } }).as(alias);
     return this;
   }
 
@@ -535,20 +535,46 @@ class AdminUsersPage extends BasePage {
    * @returns {AdminUsersPage} This page instance for chaining
    */
   mockUsers(users, alias = 'getUsers') {
-    cy.intercept('GET', '/api/**/users*', {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: {
-          data: users,
-          pagination: {
-            page: 1,
-            pageSize: 10,
-            total: users.length,
-            totalPages: 1,
+    cy.intercept('GET', /\/api\/v1\/users/, (req) => {
+      const url = new URL(req.url);
+      const search = url.searchParams.get('search');
+      const role = url.searchParams.get('role');
+      const status = url.searchParams.get('status');
+
+      let filtered = [...users];
+
+      if (search) {
+        const q = search.toLowerCase();
+        filtered = filtered.filter(u =>
+          u.email.toLowerCase().includes(q) ||
+          (u.firstName || '').toLowerCase().includes(q) ||
+          (u.lastName || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (role) {
+        filtered = filtered.filter(u => u.role === role);
+      }
+
+      if (status) {
+        filtered = filtered.filter(u => u.status === status);
+      }
+
+      req.reply({
+        statusCode: 200,
+        body: {
+          success: true,
+          data: {
+            data: filtered,
+            pagination: {
+              page: 1,
+              pageSize: 10,
+              total: filtered.length,
+              totalPages: 1,
+            },
           },
         },
-      },
+      });
     }).as(alias);
     return this;
   }

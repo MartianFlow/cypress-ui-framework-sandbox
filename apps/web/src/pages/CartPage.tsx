@@ -1,13 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, ArrowRight, Trash2 } from 'lucide-react';
 import { formatPrice } from '@ecommerce/shared';
 import { useCartStore } from '../stores/cart';
+import { api } from '../services/api';
 import CartItem from '../components/cart/CartItem';
 import Breadcrumb from '../components/common/Breadcrumb';
 
 export default function CartPage() {
   const { items, subtotal, itemCount, isLoading, fetchCart, clearCart } = useCartStore();
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState('');
 
   useEffect(() => {
     fetchCart();
@@ -15,7 +19,20 @@ export default function CartPage() {
 
   const tax = subtotal * 0.08;
   const shipping = subtotal >= 100 ? 0 : 9.99;
-  const total = subtotal + tax + shipping;
+  const discount = appliedCoupon?.discount || 0;
+  const total = subtotal - discount + tax + shipping;
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponError('');
+    try {
+      const result = await api.post<{ discount: number }>('/coupons/apply', { code: couponCode });
+      setAppliedCoupon({ code: couponCode, discount: result.discount });
+      setCouponCode('');
+    } catch (error: any) {
+      setCouponError(error.message || 'Invalid coupon code');
+    }
+  };
 
   if (isLoading && items.length === 0) {
     return (
@@ -36,18 +53,19 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div data-testid="cart-page" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Breadcrumb items={[{ label: 'Cart' }]} />
 
       <h1 className="text-2xl font-bold text-gray-900 mt-8">Shopping Cart</h1>
 
       {items.length === 0 ? (
-        <div className="mt-8 text-center py-16 bg-white rounded-lg">
+        <div data-testid="cart-empty" className="mt-8 text-center py-16 bg-white rounded-lg">
           <ShoppingBag className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
           <p className="text-gray-500 mb-6">Looks like you haven't added anything to your cart yet</p>
           <Link
             to="/products"
+            data-testid="continue-shopping"
             className="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700"
           >
             Start Shopping
@@ -64,6 +82,7 @@ export default function CartPage() {
                   {itemCount} {itemCount === 1 ? 'Item' : 'Items'}
                 </h2>
                 <button
+                  data-testid="clear-cart"
                   onClick={() => clearCart()}
                   className="flex items-center text-red-600 hover:text-red-700 text-sm"
                 >
@@ -88,16 +107,52 @@ export default function CartPage() {
               <div className="space-y-4">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span data-testid="cart-subtotal">{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
+                  <span data-testid="cart-shipping">{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Tax (8%)</span>
-                  <span>{formatPrice(tax)}</span>
+                  <span data-testid="cart-tax">{formatPrice(tax)}</span>
                 </div>
+
+                {/* Coupon Code */}
+                <div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      data-testid="coupon-input"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      placeholder="Coupon code"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    <button
+                      data-testid="coupon-apply"
+                      onClick={handleApplyCoupon}
+                      className="px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-900"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {couponError && (
+                    <p data-testid="coupon-error" className="text-red-600 text-sm mt-1">{couponError}</p>
+                  )}
+                  {appliedCoupon && (
+                    <p data-testid="coupon-success" className="text-green-600 text-sm mt-1">
+                      Coupon "{appliedCoupon.code}" applied!
+                    </p>
+                  )}
+                </div>
+
+                {appliedCoupon && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount</span>
+                    <span data-testid="cart-discount">-{formatPrice(appliedCoupon.discount)}</span>
+                  </div>
+                )}
 
                 <hr />
 
@@ -122,6 +177,7 @@ export default function CartPage() {
 
                 <Link
                   to="/products"
+                  data-testid="continue-shopping"
                   className="block w-full py-3 bg-gray-100 text-gray-700 text-center font-semibold rounded-lg hover:bg-gray-200"
                 >
                   Continue Shopping

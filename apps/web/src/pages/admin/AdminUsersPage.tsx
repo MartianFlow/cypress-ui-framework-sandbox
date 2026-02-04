@@ -55,7 +55,7 @@ export default function AdminUsersPage() {
       toast.success('User created successfully');
     },
     onError: (error: any) => {
-      const message = error.response?.data?.error?.message || 'Failed to create user';
+      const message = error.message || 'Failed to create user';
       setFormErrors({ form: message });
       toast.error(message);
     },
@@ -169,7 +169,7 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div data-testid="admin-users" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
        <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Users</h1>
         <button
@@ -251,7 +251,7 @@ export default function AdminUsersPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent mx-auto"></div>
           </div>
         ) : (
-          <div data-testid="table" className="overflow-x-auto">
+          <div data-testid="users-table" className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -321,7 +321,7 @@ export default function AdminUsersPage() {
                         </button>
                         <button
                           data-testid="reset-password"
-                          onClick={() => toast.success('Password reset email sent')}
+                          onClick={() => api.post(`/users/${user.id}/reset-password`, {}).then(() => toast.success('Password reset email sent')).catch(() => toast.error('Failed to send reset email'))}
                           className="p-2 text-yellow-600 hover:bg-yellow-50 rounded"
                           title="Reset Password"
                         >
@@ -329,7 +329,7 @@ export default function AdminUsersPage() {
                         </button>
                         <button
                           data-testid="impersonate-user"
-                          onClick={() => toast.success('Impersonating user...')}
+                          onClick={() => api.post(`/users/${user.id}/impersonate`, {}).then(() => toast.success('Impersonating user...')).catch(() => toast.error('Failed to impersonate user'))}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded"
                           title="Impersonate"
                         >

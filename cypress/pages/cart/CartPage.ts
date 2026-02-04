@@ -110,7 +110,7 @@ class CartPage extends BasePage {
    * @returns {CartPage} This page instance for chaining
    */
   updateQuantity(index, quantity) {
-    this.getItemQuantityInput(index).clear().type(quantity.toString());
+    this.getItemQuantityInput(index).type(`{selectall}${quantity}`);
     return this;
   }
 
@@ -350,7 +350,7 @@ class CartPage extends BasePage {
    * @returns {CartPage} This page instance for chaining
    */
   interceptGetCartRequest(alias = 'getCart') {
-    cy.intercept('GET', '**/cart').as(alias);
+    cy.intercept('GET', '/api/v1/cart').as(alias);
     return this;
   }
 
@@ -360,7 +360,7 @@ class CartPage extends BasePage {
    * @returns {CartPage} This page instance for chaining
    */
   interceptUpdateCartRequest(alias = 'updateCart') {
-    cy.intercept('PUT', '**/cart/*').as(alias);
+    cy.intercept('PUT', '/api/v1/cart/*', { statusCode: 200, body: { success: true, data: {} } }).as(alias);
     return this;
   }
 
@@ -370,7 +370,7 @@ class CartPage extends BasePage {
    * @returns {CartPage} This page instance for chaining
    */
   interceptDeleteCartItemRequest(alias = 'deleteCartItem') {
-    cy.intercept('DELETE', '**/cart/*').as(alias);
+    cy.intercept('DELETE', '/api/v1/cart/*', { statusCode: 200, body: { success: true, data: {} } }).as(alias);
     return this;
   }
 
@@ -381,16 +381,28 @@ class CartPage extends BasePage {
    * @returns {CartPage} This page instance for chaining
    */
   mockCart(items, alias = 'getCart') {
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    cy.intercept('GET', '**/cart', {
+    // Transform flat items { id, name, price, quantity } into nested structure { id, quantity, product: {...} }
+    const transformedItems = items.map(item => ({
+      id: item.id,
+      quantity: item.quantity,
+      product: {
+        id: item.productId || item.id,
+        name: item.name,
+        price: item.price,
+        images: item.images || ['/placeholder.jpg'],
+        stock: item.stock || 100,
+      },
+    }));
+    const subtotal = transformedItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    const itemCount = transformedItems.reduce((sum, item) => sum + item.quantity, 0);
+    cy.intercept('GET', '/api/v1/cart', {
       statusCode: 200,
       body: {
         success: true,
         data: {
-          items,
+          items: transformedItems,
           subtotal,
-          tax: subtotal * 0.1,
-          total: subtotal * 1.1,
+          itemCount,
         },
       },
     }).as(alias);
@@ -403,15 +415,14 @@ class CartPage extends BasePage {
    * @returns {CartPage} This page instance for chaining
    */
   mockEmptyCart(alias = 'getCart') {
-    cy.intercept('GET', '**/cart', {
+    cy.intercept('GET', '/api/v1/cart', {
       statusCode: 200,
       body: {
         success: true,
         data: {
           items: [],
           subtotal: 0,
-          tax: 0,
-          total: 0,
+          itemCount: 0,
         },
       },
     }).as(alias);

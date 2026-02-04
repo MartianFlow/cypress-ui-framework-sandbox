@@ -133,7 +133,7 @@ class AdminOrdersPage extends BasePage {
    * @returns {AdminOrdersPage} This page instance for chaining
    */
   clickViewOrder(index) {
-    this.getOrderRow(index).find('[data-testid="view-button"]').click();
+    this.getOrderRow(index).find('[data-testid="view-order"]').click();
     return this;
   }
 
@@ -337,7 +337,7 @@ class AdminOrdersPage extends BasePage {
    * @returns {AdminOrdersPage} This page instance for chaining
    */
   interceptUpdateStatus(alias = 'updateStatus') {
-    cy.intercept('PUT', '**/orders/**/status').as(alias);
+    cy.intercept('PUT', '**/api/v1/orders/**/status', { statusCode: 200, body: { success: true, data: {} } }).as(alias);
     return this;
   }
 
@@ -352,20 +352,68 @@ class AdminOrdersPage extends BasePage {
    * @returns {AdminOrdersPage} This page instance for chaining
    */
   mockOrders(orders, alias = 'getOrders') {
-    cy.intercept('GET', '/api/**/orders*', {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: {
-          data: orders,
-          pagination: {
-            page: 1,
-            pageSize: 10,
-            total: orders.length,
-            totalPages: 1,
+    // Intercept order detail endpoint — returns the first matching order with full structure
+    cy.intercept('GET', /\/api\/v1\/orders\/\d+$/, (req) => {
+      const idMatch = req.url.match(/\/orders\/(\d+)/);
+      const orderId = idMatch ? parseInt(idMatch[1]) : null;
+      const order = orders.find(o => o.id === orderId) || orders[0];
+      req.reply({
+        statusCode: 200,
+        body: {
+          success: true,
+          data: {
+            order: {
+              ...order,
+              items: [
+                { id: 1, productId: 1, name: 'Test Product', price: order.total, quantity: 1 },
+              ],
+              shippingAddress: { street: '123 Test St', city: 'Test City', state: 'CA', zipCode: '12345', country: 'USA' },
+              billingAddress: { street: '123 Test St', city: 'Test City', state: 'CA', zipCode: '12345', country: 'USA' },
+              paymentMethod: 'credit_card',
+              paymentStatus: 'completed',
+              createdAt: order.createdAt || new Date().toISOString(),
+            },
           },
         },
-      },
+      });
+    }).as('getOrderDetail');
+
+    // Intercept the admin orders list with filtering logic
+    cy.intercept('GET', /\/api\/v1\/orders\/admin/, (req) => {
+      const url = new URL(req.url);
+      const status = url.searchParams.get('status');
+      const search = url.searchParams.get('search');
+
+      let filtered = [...orders];
+
+      if (status) {
+        filtered = filtered.filter(o => o.status === status);
+      }
+
+      if (search) {
+        const q = search.toLowerCase();
+        filtered = filtered.filter(o =>
+          o.id.toString().includes(q) ||
+          (o.user?.firstName || '').toLowerCase().includes(q) ||
+          (o.user?.lastName || '').toLowerCase().includes(q)
+        );
+      }
+
+      req.reply({
+        statusCode: 200,
+        body: {
+          success: true,
+          data: {
+            data: filtered,
+            pagination: {
+              page: 1,
+              pageSize: 10,
+              total: filtered.length,
+              totalPages: 1,
+            },
+          },
+        },
+      });
     }).as(alias);
     return this;
   }
