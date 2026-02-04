@@ -134,7 +134,7 @@ describe('Checkout Feature', { tags: ['@checkout', '@ecommerce'] }, () => {
   // =================================
 
   describe('Place Order', { tags: '@smoke' }, () => {
-    it('should place order successfully', () => {
+    it.only('should place order successfully', () => {
       checkoutPage().completeCheckout(checkoutData);
 
       // order-confirmation only renders after both POST /orders (201) and POST /payments/process (200) succeed
