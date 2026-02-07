@@ -86,6 +86,22 @@ class OrderDetailPage extends BasePage {
     return cy.get(this.selectors.REORDER_BUTTON);
   }
 
+  get printButton() {
+    return cy.get('[data-testid="print-order"]');
+  }
+
+  get downloadInvoiceButton() {
+    return cy.get('[data-testid="download-invoice"]');
+  }
+
+  get timeline() {
+    return cy.get('[data-testid="detail-order-timeline"]');
+  }
+
+  get timelineEvents() {
+    return cy.get('[data-testid="timeline-event"]');
+  }
+
   // =================================
   // Navigation Methods
   // =================================
@@ -107,13 +123,22 @@ class OrderDetailPage extends BasePage {
   // =================================
 
   /**
-   * Cancel order
+   * Click cancel button (opens modal)
+   * @returns {OrderDetailPage} This page instance for chaining
+   */
+  clickCancel() {
+    this.cancelButton.click();
+    return this;
+  }
+
+  /**
+   * Cancel order (confirm in modal)
    * @returns {OrderDetailPage} This page instance for chaining
    */
   cancelOrder() {
-    this.cancelButton.click();
-    // Handle confirmation modal if needed
+    this.clickCancel();
     cy.get('[data-testid="confirm-cancel"]').click();
+    cy.wait(1000); // Wait for cancellation to process
     return this;
   }
 
@@ -127,11 +152,38 @@ class OrderDetailPage extends BasePage {
   }
 
   /**
-   * Reorder
+   * Click reorder button
+   * @returns {OrderDetailPage} This page instance for chaining
+   */
+  clickReorder() {
+    this.reorderButton.click();
+    cy.wait(1000); // Wait for items to be added to cart
+    return this;
+  }
+
+  /**
+   * Reorder (alias for clickReorder)
    * @returns {OrderDetailPage} This page instance for chaining
    */
   reorder() {
-    this.reorderButton.click();
+    return this.clickReorder();
+  }
+
+  /**
+   * Print order
+   * @returns {OrderDetailPage} This page instance for chaining
+   */
+  printOrder() {
+    this.printButton.click();
+    return this;
+  }
+
+  /**
+   * Download invoice
+   * @returns {OrderDetailPage} This page instance for chaining
+   */
+  downloadInvoice() {
+    this.downloadInvoiceButton.click();
     return this;
   }
 
