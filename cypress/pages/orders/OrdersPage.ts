@@ -77,6 +77,7 @@ class OrdersPage extends BasePage {
    */
   filterByStatus(status) {
     this.statusFilter.select(status);
+    cy.wait(500); // Wait for filter to apply
     return this;
   }
 
@@ -87,6 +88,114 @@ class OrdersPage extends BasePage {
    */
   searchOrders(query) {
     this.searchInput.clear().type(query);
+    cy.wait(500); // Wait for search to apply
+    return this;
+  }
+
+  /**
+   * Filter by date range
+   * @param {string} fromDate - Start date
+   * @param {string} toDate - End date
+   * @returns {OrdersPage} This page instance for chaining
+   */
+  filterByDateRange(fromDate, toDate) {
+    // In a real implementation, this would interact with date picker components
+    // For now, we'll just return this
+    return this;
+  }
+
+  /**
+   * Clear all filters
+   * @returns {OrdersPage} This page instance for chaining
+   */
+  clearFilters() {
+    cy.get('[data-testid="clear-filters"]').click();
+    cy.wait(500); // Wait for filters to clear
+    return this;
+  }
+
+  /**
+   * Sort orders
+   * @param {string} sortOption - Sort option (date-desc, date-asc, total-desc, total-asc)
+   * @returns {OrdersPage} This page instance for chaining
+   */
+  sortBy(sortOption) {
+    cy.get('[data-testid="sort-select"]').select(sortOption);
+    cy.wait(500); // Wait for sort to apply
+    return this;
+  }
+
+  /**
+   * Get order by status
+   * @param {string} status - Order status
+   * @returns {Cypress.Chainable} Order elements with that status
+   */
+  getOrderByStatus(status) {
+    return cy.get(`[data-testid="order-status"]:contains("${status}")`).parent().parent();
+  }
+
+  /**
+   * Click view order button
+   * @param {number} index - Order index
+   * @returns {OrdersPage} This page instance for chaining
+   */
+  clickViewOrder(index) {
+    this.orderItems.eq(index).find('[data-testid="view-order-details"]').click();
+    return this;
+  }
+
+  /**
+   * Get empty state element
+   * @returns {Cypress.Chainable} Empty state element
+   */
+  verifyEmptyState() {
+    cy.get('[data-testid="orders-empty"]').should('be.visible');
+    return this;
+  }
+
+  /**
+   * Get shop now button
+   * @returns {Cypress.Chainable} Shop now button element
+   */
+  get shopNowButton() {
+    return cy.get('[data-testid="shop-now-button"]');
+  }
+
+  /**
+   * Click shop now button
+   * @returns {OrdersPage} This page instance for chaining
+   */
+  clickShopNow() {
+    this.shopNowButton.click();
+    return this;
+  }
+
+  /**
+   * Get pagination element
+   * @returns {Cypress.Chainable} Pagination element
+   */
+  get pagination() {
+    return cy.get('[data-testid="table-pagination"]');
+  }
+
+  /**
+   * Go to next page
+   * @returns {OrdersPage} This page instance for chaining
+   */
+  goToNextPage() {
+    cy.get('[data-testid="next-page"]').click();
+    cy.wait(500); // Wait for page to load
+    return this;
+  }
+
+  /**
+   * Go to specific page
+   * @param {number} page - Page number
+   * @returns {OrdersPage} This page instance for chaining
+   */
+  goToPage(page) {
+    cy.get(`[data-testid="page-${page}"]`).click();
+    cy.wait(500); // Wait for page to load
     return this;
   }
 
